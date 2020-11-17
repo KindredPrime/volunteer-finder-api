@@ -43,5 +43,11 @@ describe('OrganizationsService', () => {
       return OrganizationsService.getAllOrganizations(db)
         .then((result) => expect(result).to.eql(testOrgs));
     });
+
+    it(`getById() returns the organization with the provided id`, () => {
+      const id = 1;
+      return OrganizationsService.getById(db, id)
+        .then((result) => expect(result).to.eql(testOrgs[id - 1]));
+    });
   });
 });
