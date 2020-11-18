@@ -11,8 +11,11 @@ describe('OrganizationsService', () => {
       connection: process.env.TEST_DATABASE_URL
     });
   });
+  const truncateTables = 'TRUNCATE users, organizations RESTART IDENTITY CASCADE';
 
-  afterEach('Clear tables', () => db.raw('TRUNCATE users, organizations RESTART IDENTITY CASCADE'));
+  before('Clear tables', () => db.raw(truncateTables));
+
+  afterEach('Clean up tables', () => db.raw(truncateTables));
 
   after('Disconnect from database', () => db.destroy());
 
