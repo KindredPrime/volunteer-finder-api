@@ -75,4 +75,63 @@ describe.only('Organizations Endpoints', () => {
       });
     });
   });
+
+  describe('GET /api/orgs/:id', () => {
+    context('Given no organizations', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        return supertest(app)
+          .get(`/api/orgs/${id}`)
+          .expect(404, {
+            message: `Organization with id ${id} does not exist`
+          });
+      });
+    });
+
+    context('Given the table has organizations', () => {
+      const testUsers = makeUsersArray();
+      const testOrgs = makeOrganizationsArray();
+
+      beforeEach('Populate users and organizations', () => {
+        return db
+          .insert(testUsers)
+          .into('users')
+          .then(() => {
+            return db
+              .insert(testOrgs)
+              .into('organizations');
+          });
+      });
+
+      it('Responds with 200 and the organization with the id', () => {
+        const id = 1;
+        return supertest(app)
+          .get(`/api/orgs/${id}`)
+          .expect(200, testOrgs[id - 1]);
+      });
+    });
+
+    context('Given XSS attack content', () => {
+      const testUsers = makeUsersArray();
+      const { maliciousOrg, expectedOrg } = makeMaliciousOrg();
+
+      beforeEach('Insert users and malicious org', () => {
+        return db
+          .insert(testUsers)
+          .into('users')
+          .then(() => {
+            return db
+              .insert(maliciousOrg)
+              .into('organizations');
+          });
+      });
+
+      it('Responds with 200 and the organization with id, without its XSS attack content', () => {
+        const id = 1;
+        return supertest(app)
+          .get(`/api/orgs/${id}`)
+          .expect(200, expectedOrg);
+      });
+    });
+  });
 });

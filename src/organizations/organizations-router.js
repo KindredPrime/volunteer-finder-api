@@ -27,4 +27,23 @@ organizationsRouter
       .catch(next);
   });
 
+organizationsRouter
+  .route('/:id')
+  .get((req, res, next) => {
+    const { id } = req.params;
+    return OrganizationsService.getById(req.app.get('db'), id)
+      .then((org) => {
+        if (!org) {
+          return res
+            .status(404)
+            .json({
+              message: `Organization with id ${id} does not exist`
+            });
+        }
+
+        return res.json(sanitizeOrganization(org));
+      })
+      .catch(next);
+  });
+
 module.exports = organizationsRouter;
