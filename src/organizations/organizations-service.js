@@ -11,6 +11,9 @@ const OrganizationsService = {
   },
   updateOrganization(db, id, newFields) {
     return db.from('organizations').where({ id }).update(newFields);
+  },
+  deleteOrganization(db, id) {
+    return db.from('organizations').where({ id }).del();
   }
 };
 

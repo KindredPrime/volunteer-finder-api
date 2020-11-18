@@ -97,5 +97,13 @@ describe('OrganizationsService', () => {
           ...newFields
         }));
     });
+
+    it(`deleteOrganization() deletes the organization with the provided id`, () => {
+      const id = 1;
+
+      return OrganizationsService.deleteOrganization(db, id)
+        .then(() => OrganizationsService.getAllOrganizations(db))
+        .then((results) => expect(results).to.eql(testOrgs.filter((org) => org.id !== id)));
+    });
   });
 });
