@@ -3,17 +3,17 @@ const OrganizationsService = {
     return db.select('*').from('organizations');
   },
   getById(db, id) {
-    return db.select('*').from('organizations').where({ id }).first();
+    return this.getAllOrganizations(db).where({ id }).first();
   },
   insertOrganization(db, org) {
     return db.insert(org).into('organizations').returning('*')
       .then((rows) => rows[0]);
   },
   updateOrganization(db, id, newFields) {
-    return db.from('organizations').where({ id }).update(newFields);
+    return this.getById(db, id).update(newFields);
   },
   deleteOrganization(db, id) {
-    return db.from('organizations').where({ id }).del();
+    return this.getById(db, id).del();
   }
 };
 
