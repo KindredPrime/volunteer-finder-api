@@ -1,8 +1,10 @@
 const express = require('express');
 const xss = require('xss');
 const OrganizationsService = require('./organizations-service');
+const { validateOrganizationPost } = require('../util');
 
 const organizationsRouter = express.Router();
+const bodyParser = express.json();
 
 const sanitizeOrganization = (organization) => {
   const { org_name, website, phone, email, org_address, org_desc } = organization;
@@ -25,6 +27,23 @@ organizationsRouter
         return res.json(orgs.map(sanitizeOrganization));
       })
       .catch(next);
+  })
+  .post(bodyParser, (req, res, next) => {
+    const org = req.body;
+    const errorMsgs = validateOrganizationPost(org);
+    if (errorMsgs.length > 0) {
+      return res
+        .status(400)
+        .json({ message: errorMsgs.join('; ') });
+    }
+
+    return OrganizationsService.insertOrganization(req.app.get('db'), org)
+      .then((org) => {
+        return res
+          .location(`/api/orgs/${org.id}`)
+          .status(201)
+          .json(sanitizeOrganization(org));
+      });
   });
 
 organizationsRouter

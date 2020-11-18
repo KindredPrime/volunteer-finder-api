@@ -1,6 +1,6 @@
 const app = require('../src/app');
 const knex = require('knex');
-const { makeUsersArray } = require('./fixtures');
+const { makeUsersArray, testValidationFields } = require('./fixtures');
 const { makeOrganizationsArray, makeMaliciousOrg } = require('./organizations-fixtures');
 
 describe.only('Organizations Endpoints', () => {
@@ -131,6 +131,137 @@ describe.only('Organizations Endpoints', () => {
         return supertest(app)
           .get(`/api/orgs/${id}`)
           .expect(200, expectedOrg);
+      });
+    });
+  });
+
+  describe('POST /api/orgs', () => {
+    const testUsers = makeUsersArray();
+
+    beforeEach('Populate users table', () => {
+      return db
+        .insert(testUsers)
+        .into('users');
+    });
+
+    it(`Responds with 201 and the created organization, and adds the organization to the database`, () => {
+      const newOrg = {
+        org_name: 'New Org',
+        website: 'https://www.new-org.com',
+        phone: '1-800-123-4567',
+        email: 'contact@new-org.com',
+        org_address: '1 New Street',
+        org_desc: 'A description for New Org',
+        creator: 1
+      };
+      return supertest(app)
+        .post('/api/orgs')
+        .send(newOrg)
+        .expect(201)
+        .expect((res) => {
+          const resOrg = res.body;
+          expect(resOrg).to.have.property('id');
+          expect(resOrg.org_name).to.eql(newOrg.org_name);
+          expect(resOrg.website).to.eql(newOrg.website);
+          expect(resOrg.phone).to.eql(newOrg.phone);
+          expect(resOrg.email).to.eql(newOrg.email);
+          expect(resOrg.org_address).to.eql(newOrg.org_address);
+          expect(resOrg.org_desc).to.eql(newOrg.org_desc);
+          expect(resOrg.creator).to.eql(newOrg.creator);
+          expect(res.headers.location).to.eql(`/api/orgs/${resOrg.id}`);
+        })
+        .then((postRes) => {
+          const { id } = postRes.body;
+          const expectedOrg = {
+            id,
+            ...newOrg
+          };
+
+          return supertest(app)
+            .get(postRes.headers.location)
+            .expect(200, expectedOrg);
+        });
+    });
+
+    /*
+      Test Validation Errors
+    */
+    const validationOrg = {
+      org_name: 'Org Name',
+      website: 'https://www.website.com',
+      phone: '111-111-1111',
+      email: 'contact@website.com',
+      org_address: '123 Org Street Org City, Org State',
+      org_desc: 'Org description text',
+      creator: 1
+    };
+
+    const requiredFieldErrors = {
+      org_name: [`'org_name' is missing from the request body`, `'org_name' must be a string`],
+      org_desc: [`'org_desc' is missing from the request body`, `'org_desc' must be a string`],
+      creator: [`'creator' is missing from the request body`, `'creator' must be a number`]
+    };
+    testValidationFields(
+      app,
+      'POST',
+      (fieldName) => `Responds with 400 and an error message when ${fieldName} is missing`,
+      'post',
+      () => '/api/orgs',
+      requiredFieldErrors,
+      validationOrg,
+      (org, fieldName) => {
+        delete org[fieldName];
+        return org;
+      }
+    );
+
+    const stringFieldErrors = {
+      org_name: [`'org_name' must be a string`],
+      website: [`'website' must be a string`],
+      phone: [`'phone' must be a string`],
+      email: [`'email' must be a string`],
+      org_address: [`'org_address' must be a string`],
+      org_desc: [`'org_desc' must be a string`]
+    }
+    testValidationFields(
+      app,
+      'POST',
+      (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a string`,
+      'post',
+      () => '/api/orgs',
+      stringFieldErrors,
+      validationOrg,
+      (org, fieldName) => {
+        org[fieldName] = 6;
+        return org;
+      }
+    );
+
+    const numberFieldErrors = {
+      creator: [`'creator' must be a number`]
+    };
+    testValidationFields(
+      app,
+      'POST',
+      (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a number`,
+      'post',
+      () => '/api/orgs',
+      numberFieldErrors,
+      validationOrg,
+      (org, fieldName) => {
+        org[fieldName] = '6';
+        return org;
+      }
+    );
+
+    context('Given XSS attack content', () => {
+      const { maliciousOrg, expectedOrg } = makeMaliciousOrg();
+
+      it('Responds with 201 and the created organization, without its XSS content', () => {
+        return supertest(app)
+          .post('/api/orgs')
+          .send(maliciousOrg)
+          .expect(201, expectedOrg);
       });
     });
   });
