@@ -8,6 +8,9 @@ const OrganizationsService = {
   insertOrganization(db, org) {
     return db.insert(org).into('organizations').returning('*')
       .then((rows) => rows[0]);
+  },
+  updateOrganization(db, id, newFields) {
+    return db.from('organizations').where({ id }).update(newFields);
   }
 };
 

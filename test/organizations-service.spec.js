@@ -77,5 +77,25 @@ describe('OrganizationsService', () => {
       return OrganizationsService.getById(db, id)
         .then((result) => expect(result).to.eql(testOrgs[id - 1]));
     });
+
+    it(`updateOrganization() updates the organization with the provided id`, () => {
+      const id = 1;
+      const newFields = {
+        org_name: 'Updated Name',
+        website: 'https://www.updated.com',
+        phone: '1-800-123-4567',
+        email: 'contact@updated.com',
+        org_address: '1 Updated Street',
+        org_desc: 'The description has been updated.',
+        creator: 2
+      };
+
+      return OrganizationsService.updateOrganization(db, id, newFields)
+        .then(() => OrganizationsService.getById(db, id))
+        .then((result) => expect(result).to.eql({
+          id,
+          ...newFields
+        }));
+    });
   });
 });
