@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('./config');
 const logger = require('./logger');
+const organizationsRouter = require('./organizations/organizations-router');
 
 const app = express();
 
@@ -16,9 +17,7 @@ app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors());
 
-app.get('/api/*', (req, res) => {
-  res.json({ok: true});
-});
+app.use('/api/orgs', organizationsRouter);
 
 app.use(function errorHandler(error, req, res, next) {
   let response;
