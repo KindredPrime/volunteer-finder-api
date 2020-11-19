@@ -22,11 +22,15 @@ app.use('/api/orgs', organizationsRouter);
 app.use(function errorHandler(error, req, res, next) {
   let response;
   if (NODE_ENV === 'production') {
-    response = { error: { message: 'server error' } };
+    const message = 'server error';
+    logger.error(message)
+    response = { message };
   } else {
-    console.error(error);
+    logger.error(`${req.method}: ${error.message}`);
+    logger.error(error.stack);
     response = { message: error.message, stack: error.stack };
   }
+
   res.status(500).json(response);
 });
 

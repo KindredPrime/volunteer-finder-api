@@ -33,9 +33,11 @@ organizationsRouter
     const org = req.body;
     const errorMsgs = validateOrganizationPost(org);
     if (errorMsgs.length > 0) {
+      const message = errorMsgs.join('; ');
+      logger.error(`${req.method}: ${message}`);
       return res
         .status(400)
-        .json({ message: errorMsgs.join('; ') });
+        .json({ message });
     }
 
     return OrganizationsService.insertOrganization(req.app.get('db'), org)
@@ -55,12 +57,10 @@ organizationsRouter
       .then((org) => {
         if (!org) {
           const message = `Organization with id ${id} does not exist`;
-          logger.error(message);
+          logger.error(`${req.method}: ${message}`);
           return res
             .status(404)
-            .json({
-              message
-            });
+            .json({ message });
         }
 
         res.org = org;
@@ -79,7 +79,7 @@ organizationsRouter
     const errorMsgs = validateOrganizationPatch(newFields);
     if (errorMsgs.length > 0) {
       const message = errorMsgs.join('; ');
-      logger.error(message);
+      logger.error(`${req.method}: ${message}`);
       return res
         .status(400)
         .json({ message });
