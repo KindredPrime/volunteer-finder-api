@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('./config');
 const logger = require('./logger');
+const organizationsRouter = require('./organizations/organizations-router');
 
 const app = express();
 
@@ -16,18 +17,20 @@ app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors());
 
-app.get('/api/*', (req, res) => {
-  res.json({ok: true});
-});
+app.use('/api/orgs', organizationsRouter);
 
 app.use(function errorHandler(error, req, res, next) {
   let response;
   if (NODE_ENV === 'production') {
-    response = { error: { message: 'server error' } };
+    const message = 'server error';
+    logger.error(message)
+    response = { message };
   } else {
-    console.error(error);
+    logger.error(`${req.method}: ${error.message}`);
+    logger.error(error.stack);
     response = { message: error.message, stack: error.stack };
   }
+
   res.status(500).json(response);
 });
 
