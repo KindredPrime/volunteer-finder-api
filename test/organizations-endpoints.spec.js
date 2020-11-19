@@ -68,7 +68,7 @@ describe('Organizations Endpoints', () => {
           });
       });
 
-      it('Removes XSS attack content', () => {
+      it('Responds with 200 and the organizations, without their XSS content', () => {
         return supertest(app)
           .get('/api/orgs')
           .expect(200, [expectedOrg]);
