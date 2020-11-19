@@ -391,4 +391,45 @@ describe('Organizations Endpoints', () => {
       );
     });
   });
+
+  describe('DELETE /api/orgs/:id', () => {
+    context('Given no organizations', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        return supertest(app)
+          .delete(`/api/orgs/${id}`)
+          .expect(404, { message: `Organization with id ${id} does not exist` });
+      });
+    });
+
+    context('Given the table has organizations', () => {
+      const testUsers = makeUsersArray();
+      const testOrgs = makeOrganizationsArray();
+
+      beforeEach('Populate users and organizations', () => {
+        return db
+          .insert(testUsers)
+          .into('users')
+          .then(() => {
+            return db
+              .insert(testOrgs)
+              .into('organizations');
+          });
+      });
+
+      it(
+        `Responds with 204 and removes the organization with the id from the 'organizations' table`,
+        () => {
+          const id = 1;
+          return supertest(app)
+            .delete(`/api/orgs/${id}`)
+            .expect(204)
+            .then(() => {
+              return supertest(app)
+                .get(`/api/orgs`)
+                .expect(200, testOrgs.filter((org) => org.id !== id));
+            });
+        });
+    });
+  });
 });

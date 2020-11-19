@@ -92,6 +92,16 @@ organizationsRouter
           .end();
       })
       .catch(next);
+  })
+  .delete((req, res, next) => {
+    const { id } = req.params;
+    return OrganizationsService.deleteOrganization(req.app.get('db'), id)
+      .then(() => {
+        return res
+          .status(204)
+          .end();
+      })
+      .catch(next);
   });
 
 module.exports = organizationsRouter;
