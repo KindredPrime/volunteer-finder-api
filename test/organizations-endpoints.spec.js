@@ -3,7 +3,7 @@ const knex = require('knex');
 const { makeUsersArray, testValidationFields } = require('./fixtures');
 const { makeOrganizationsArray, makeMaliciousOrg } = require('./organizations-fixtures');
 
-describe.only('Organizations Endpoints', () => {
+describe('Organizations Endpoints', () => {
   let db;
   before('Connect to database', () => {
     db = knex({
@@ -263,6 +263,132 @@ describe.only('Organizations Endpoints', () => {
           .send(maliciousOrg)
           .expect(201, expectedOrg);
       });
+    });
+  });
+
+  describe('PATCH /api/orgs/:id', () => {
+    context('Given no organizations', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        const newFields = {
+          org_name: 'Updated Name',
+          website: 'https://www.updated-org.com',
+          phone: '132-645-0798',
+          email: 'contact@updated-org.com',
+          org_address: '1 Updated Street Updated City, Updated State',
+          org_desc: 'A description that has been updated',
+          creator: 2
+        };
+
+        return supertest(app)
+          .patch(`/api/orgs/${id}`)
+          .send(newFields)
+          .expect(404, { message: `Organization with id ${id} does not exist` });
+      });
+    });
+
+    context('Given the table has organizations', () => {
+      const testUsers = makeUsersArray();
+      const testOrgs = makeOrganizationsArray();
+
+      beforeEach('Populate users and organizations', () => {
+        return db
+          .insert(testUsers)
+          .into('users')
+          .then(() => {
+            return db
+              .insert(testOrgs)
+              .into('organizations');
+          });
+      });
+
+      it('Responds with 204 and updates the organization with the id', () => {
+        const id = 1;
+        const newFields = {
+          org_name: 'Updated Name',
+          website: 'https://www.updated-org.com',
+          phone: '132-645-0798',
+          email: 'contact@updated-org.com',
+          org_address: '1 Updated Street Updated City, Updated State',
+          org_desc: 'A description that has been updated',
+          creator: 2
+        };
+
+        return supertest(app)
+          .patch(`/api/orgs/${id}`)
+          .send(newFields)
+          .expect(201)
+          .then(() => {
+            return supertest(app)
+              .get(`/api/orgs/${id}`)
+              .expect(200, {
+                id,
+                ...newFields
+              });
+          });
+      });
+
+      it('Responds with 400 and an error message when no organization fields are provided', () => {
+        const id = 1;
+        return supertest(app)
+          .patch(`/api/orgs/${id}`)
+          .send({ irrelevant: 'foo' })
+          .expect(400, { 
+            message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'creator'`
+          });
+      });
+
+      /*
+        Test Validation Errors
+      */
+      const validationOrg = {
+        org_name: 'Org Name',
+        website: 'https://www.website.com',
+        phone: '111-111-1111',
+        email: 'contact@website.com',
+        org_address: '123 Org Street Org City, Org State',
+        org_desc: 'Org description text',
+        creator: 1
+      };
+
+      const stringFieldErrors = {
+        org_name: [`'org_name' must be a string`],
+        website: [`'website' must be a string`],
+        phone: [`'phone' must be a string`],
+        email: [`'email' must be a string`],
+        org_address: [`'org_address' must be a string`],
+        org_desc: [`'org_desc' must be a string`]
+      }
+      testValidationFields(
+        app,
+        'PATCH',
+        (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a string`,
+        'patch',
+        (id) => `/api/orgs/${id}`,
+        stringFieldErrors,
+        validationOrg,
+        (org, fieldName) => {
+          org[fieldName] = 6;
+          return org;
+        }
+      );
+
+      const numberFieldErrors = {
+        creator: [`'creator' must be a number`]
+      };
+      testValidationFields(
+        app,
+        'PATCH',
+        (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a number`,
+        'patch',
+        (id) => `/api/orgs/${id}`,
+        numberFieldErrors,
+        validationOrg,
+        (org, fieldName) => {
+          org[fieldName] = 'six';
+          return org;
+        }
+      );
     });
   });
 });

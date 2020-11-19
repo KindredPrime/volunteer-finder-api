@@ -50,6 +50,31 @@ const validateOrganizationPost = validate([
   ['creator', [validateRequired, validateNumber]]
 ]);
 
+const validateOrganizationPatch = (newFields) => {
+  const errors = [];
+
+  // check if any fields are provided
+  const numFields = Object.values(newFields).filter(Boolean).length;
+  if (numFields === 0) {
+    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'creator'`);
+    return errors;
+  }
+
+  // call validate method
+  errors.push(...validate([
+    ['org_name', [validateString]],
+    ['website', [validateString]],
+    ['phone', [validateString]],
+    ['email', [validateString]],
+    ['org_address', [validateString]],
+    ['org_desc', [validateString]],
+    ['creator', [validateNumber]]
+  ])(newFields));
+
+  return errors;
+}
+
 module.exports = {
-  validateOrganizationPost
+  validateOrganizationPost,
+  validateOrganizationPatch
 };

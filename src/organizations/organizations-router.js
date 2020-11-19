@@ -1,7 +1,8 @@
 const express = require('express');
 const xss = require('xss');
 const OrganizationsService = require('./organizations-service');
-const { validateOrganizationPost } = require('../util');
+const logger = require('../logger');
+const { validateOrganizationPost, validateOrganizationPatch } = require('../util');
 
 const organizationsRouter = express.Router();
 const bodyParser = express.json();
@@ -48,19 +49,47 @@ organizationsRouter
 
 organizationsRouter
   .route('/:id')
-  .get((req, res, next) => {
+  .all((req, res, next) => {
     const { id } = req.params;
     return OrganizationsService.getById(req.app.get('db'), id)
       .then((org) => {
         if (!org) {
+          const message = `Organization with id ${id} does not exist`;
+          logger.error(message);
           return res
             .status(404)
             .json({
-              message: `Organization with id ${id} does not exist`
+              message
             });
         }
 
-        return res.json(sanitizeOrganization(org));
+        res.org = org;
+        next();
+      })
+      .catch(next);
+  })
+  .get((req, res, next) => {
+    return res.json(sanitizeOrganization(res.org));
+  })
+  .patch(bodyParser, (req, res, next) => {
+    const { id } = req.params;
+    const { org_name, website, phone, email, org_address, org_desc, creator } = req.body;
+    const newFields = { org_name, website, phone, email, org_address, org_desc, creator };
+
+    const errorMsgs = validateOrganizationPatch(newFields);
+    if (errorMsgs.length > 0) {
+      const message = errorMsgs.join('; ');
+      logger.error(message);
+      return res
+        .status(400)
+        .json({ message });
+    }
+
+    return OrganizationsService.updateOrganization(req.app.get('db'), id, newFields)
+      .then(() => {
+        return res
+          .status(201)
+          .end();
       })
       .catch(next);
   });
