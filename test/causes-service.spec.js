@@ -1,8 +1,8 @@
 const knex = require('knex');
 const CausesService = require('../src/causes/causes-service');
-const { makeCausesArray } = require('./causes-fixtures');
+const { makeCausesArray } = require('./fixtures');
 
-describe.only('CausesService', () => {
+describe('CausesService', () => {
   let db;
   before('Connect to the database', () => {
     db = knex({

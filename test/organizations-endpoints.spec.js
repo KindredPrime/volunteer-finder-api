@@ -1,7 +1,7 @@
 const app = require('../src/app');
 const knex = require('knex');
-const { makeUsersArray, testValidationFields } = require('./fixtures');
-const { makeOrganizationsArray, makeMaliciousOrg } = require('./organizations-fixtures');
+const { makeUsersArray, makeOrganizationsArray, testValidationFields } = require('./fixtures');
+const { makeMaliciousOrg } = require('./organizations-fixtures');
 
 describe('Organizations Endpoints', () => {
   let db;
