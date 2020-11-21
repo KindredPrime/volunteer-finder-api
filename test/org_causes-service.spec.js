@@ -1,7 +1,11 @@
 const knex = require('knex');
 const OrgCausesService = require('../src/org_causes/org_causes-service');
-const { makeUsersArray, makeOrganizationsArray, makeCausesArray } = require('./fixtures');
-const { makeOrgCausesArray } = require('./org_causes-fixtures');
+const { 
+  makeUsersArray,
+  makeOrganizationsArray,
+  makeCausesArray,
+  makeOrgCausesArray
+} = require('./fixtures');
 
 describe('OrgCausesService', () => {
   let db;

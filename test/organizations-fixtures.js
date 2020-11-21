@@ -30,6 +30,32 @@ function makeMaliciousOrg() {
   return { maliciousOrg, expectedOrg };
 }
 
+/**
+ * Returns a new array of organizations, with their causes and creator added to them
+ * 
+ * @param {*} orgs - A list of organizations
+ * @param {*} causes - A list of causes
+ * @param {*} orgCauses - A list of every cause id for each organization id
+ * @param {*} users - A list of all users
+ */
+function makeFullOrganizationsArray(orgs, causes, orgCauses, users) {
+  return orgs.map((org) => {
+    const newOrg = Object.fromEntries(Object.entries(org));
+
+    newOrg.causes = orgCauses
+      .filter((orgCause) => orgCause.org_id === org.id)
+      .map(({ __, cause_id }) => cause_id);
+    newOrg.causes = newOrg.causes.map((causeId) => (
+      causes.find((cause) => cause.id === causeId)
+    ));
+
+    newOrg.creator = users.find((user) => user.id === org.creator);
+
+    return newOrg;
+  });
+}
+
 module.exports = {
-  makeMaliciousOrg
+  makeMaliciousOrg,
+  makeFullOrganizationsArray
 };

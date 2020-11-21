@@ -1,6 +1,13 @@
 const knex = require('knex');
 const OrganizationsService = require('../src/organizations/organizations-service');
-const { makeUsersArray, makeOrganizationsArray } = require('./fixtures');
+const OrgCausesService = require('../src/org_causes/org_causes-service');
+const { 
+  makeUsersArray,
+  makeOrganizationsArray,
+  makeCausesArray,
+  makeOrgCausesArray
+} = require('./fixtures');
+const { makeFullOrganizationsArray } = require('./organizations-fixtures');
 
 describe('OrganizationsService', () => {
   let db;
@@ -10,7 +17,7 @@ describe('OrganizationsService', () => {
       connection: process.env.TEST_DATABASE_URL
     });
   });
-  const truncateTables = 'TRUNCATE users, organizations RESTART IDENTITY CASCADE';
+  const truncateTables = 'TRUNCATE users, organizations, causes, org_causes RESTART IDENTITY CASCADE';
 
   before('Clear tables', () => db.raw(truncateTables));
 
@@ -20,11 +27,17 @@ describe('OrganizationsService', () => {
 
   context('Given no organizations', () => {
     const testUsers = makeUsersArray();
+    const testCauses = makeCausesArray();
 
-    beforeEach('Populate users table', () => {
+    beforeEach('Populate users and causes', () => {
       return db
         .insert(testUsers)
-        .into('users');
+        .into('users')
+        .then(() => {
+          return db
+            .insert(testCauses)
+            .into('causes');
+        });
     });
 
     it('getAllOrganizations() returns an empty array', () => {
@@ -32,8 +45,13 @@ describe('OrganizationsService', () => {
         .then((result) => expect(result).to.eql([]));
     });
 
+    it('getAllFullOrganizations() returns an empty array', () => {
+      return OrganizationsService.getAllFullOrganizations(db)
+        .then((results) => expect(results).to.eql([]));
+    });
+
     it(
-      `insertOrganization() inserts the organization and returns the new organization with its id`, 
+      `insertOrganization() inserts the organization and causes and returns the new organization`, 
       () => {
         const newOrg = {
           org_name: 'New Org',
@@ -42,42 +60,91 @@ describe('OrganizationsService', () => {
           email: 'contact@org.com',
           org_address: '123 Fake Street',
           org_desc: 'A description for New Org',
-          creator: 1
+          causes: [testCauses[0], testCauses[1]],
+          creator: testUsers[0]
         };
+        const expectedOrg = {
+          id: 1,
+          org_name: newOrg.org_name,
+          website: newOrg.website,
+          phone: newOrg.phone,
+          email: newOrg.email,
+          org_address: newOrg.org_address,
+          org_desc: newOrg.org_desc,
+          creator: testUsers[0].id
+        };
+        const expectedOrgCauses = [
+          {
+            org_id: 1,
+            cause_id: testCauses[0].id
+          },
+          {
+            org_id: 1,
+            cause_id: testCauses[1].id
+          }
+        ];
+
         return OrganizationsService.insertOrganization(db, newOrg)
-          .then((result) => {
-            expect(result).to.eql({
-              id: 1,
-              ...newOrg
-            });
-          });
+          .then((result) => expect(result).to.eql(expectedOrg))
+          .then(() => OrganizationsService.getAllOrganizations(db))
+          .then((orgResults) => {
+            expect(orgResults).to.eql([expectedOrg]);
+            return orgResults[0].id;
+          })
+          .then((orgId) => OrgCausesService.getByOrgId(db, orgId))
+          .then((orgCauseResults) => expect(orgCauseResults).to.eql(expectedOrgCauses));
       });
   });
 
   context('Given table has organizations', () => {
     const testUsers = makeUsersArray();
     const testOrgs = makeOrganizationsArray();
+    const testCauses = makeCausesArray();
+    const testOrgCauses = makeOrgCausesArray();
+    const testFullOrgs = makeFullOrganizationsArray(testOrgs, testCauses, testOrgCauses, testUsers);
 
-    beforeEach('Populate the users and organizations tables', () => {
+    beforeEach('Populate users, organizations, causes, and org_causes', () => {
       return db
         .insert(testUsers)
         .into('users')
         .then(() => {
           return db
             .insert(testOrgs)
-            .into('organizations');
+            .into('organizations')
+            .then(() => {
+              return db
+                .insert(testCauses)
+                .into('causes')
+                .then(() => {
+                  return db
+                    .insert(testOrgCauses)
+                    .into('org_causes');
+                });
+            });
         });
     });
     
-    it(`getAllOrganizations() returns all organizations from 'organizations' table`, () => {
+    it(`getAllOrganizations() returns all organizations from 'organizations'`, () => {
       return OrganizationsService.getAllOrganizations(db)
         .then((result) => expect(result).to.eql(testOrgs));
     });
+
+    it(`getAllFullOrganizations() returns all organizations from 'organizations', combined with their causes and creator`, 
+      () => {
+        return OrganizationsService.getAllFullOrganizations(db)
+          .then((results) => expect(results).to.eql(testFullOrgs));
+      });
 
     it(`getById() returns the organization with the provided id`, () => {
       const id = 1;
       return OrganizationsService.getById(db, id)
         .then((result) => expect(result).to.eql(testOrgs[id - 1]));
+    });
+
+    it('getFullById() returns the org with id, combined with its causes', () => {
+      const id = 1;
+      return OrganizationsService.getFullById(db, id)
+        .then((result) => expect(result).to.eql(testFullOrgs[id - 1]));
     });
 
     it(`updateOrganization() updates the organization with the provided id`, () => {
@@ -89,23 +156,52 @@ describe('OrganizationsService', () => {
         email: 'contact@updated.com',
         org_address: '1 Updated Street',
         org_desc: 'The description has been updated.',
-        creator: 2
+        causes: [testCauses[2], testCauses[3]],
+        creator: testUsers[2]
       };
+
+      const expectedOrg = {
+        id,
+        org_name: newFields.org_name,
+        website: newFields.website,
+        phone: newFields.phone,
+        email: newFields.email,
+        org_address: newFields.org_address,
+        org_desc: newFields.org_desc,
+        creator: newFields.creator.id
+      };
+
+      const expectedOrgCauses = [
+        {
+          org_id: id,
+          cause_id: testCauses[2].id
+        },
+        {
+          org_id: id,
+          cause_id: testCauses[3].id
+        }
+      ];
 
       return OrganizationsService.updateOrganization(db, id, newFields)
         .then(() => OrganizationsService.getById(db, id))
-        .then((result) => expect(result).to.eql({
-          id,
-          ...newFields
-        }));
+        .then((orgResult) => {
+          expect(orgResult).to.eql(expectedOrg);
+          return orgResult.id;
+        })
+        .then((orgId) => OrgCausesService.getByOrgId(db, orgId))
+        .then((orgCauseResults) => expect(orgCauseResults).to.eql(expectedOrgCauses));
     });
 
-    it(`deleteOrganization() deletes the organization with the provided id`, () => {
-      const id = 1;
+    it(
+      `deleteOrganization() deletes the organization with id, and removes its causes from 'org_causes'`, 
+      () => {
+        const id = 1;
 
-      return OrganizationsService.deleteOrganization(db, id)
-        .then(() => OrganizationsService.getAllOrganizations(db))
-        .then((results) => expect(results).to.eql(testOrgs.filter((org) => org.id !== id)));
-    });
+        return OrganizationsService.deleteOrganization(db, id)
+          .then(() => OrganizationsService.getAllOrganizations(db))
+          .then((orgResults) => expect(orgResults).to.eql(testOrgs.filter((org) => org.id !== id)))
+          .then(() => OrgCausesService.getByOrgId(db, id))
+          .then((orgCauseResults) => expect(orgCauseResults).to.eql([]));
+      });
   });
 });
