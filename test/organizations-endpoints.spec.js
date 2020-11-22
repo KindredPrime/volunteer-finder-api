@@ -426,9 +426,6 @@ describe('Organizations Endpoints', () => {
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
-      const fullTestOrgs = makeFullOrganizationsArray(
-        testOrgs, testCauses, testOrgCauses, testUsers
-      );
 
       beforeEach('Populate users, organizations, causes, and org_causes', () => {
         return db
@@ -512,10 +509,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a string`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         stringFieldErrors,
         validationFullOrg,
         (org, fieldName) => {
@@ -531,10 +528,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when 'causes' isn't an array`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         causesFieldErrors,
         validationFullOrg,
         (org) => {
@@ -552,10 +549,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when elements of 'causes' are invalid`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         causesElementErrors,
         validationFullOrg,
         (org) => {
@@ -579,10 +576,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when 'creator' has invalid fields`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         creatorFieldErrors,
         validationFullOrg,
         (org) => {
