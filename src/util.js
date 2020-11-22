@@ -8,13 +8,50 @@ const validateString = (fieldName) => (fieldValue) => {
   if (typeof fieldValue !== 'string') {
     return `'${fieldName}' must be a string`;
   }
-}
+};
 
 const validateNumber = (fieldName) => (fieldValue) => {
   if (typeof fieldValue !== 'number') {
     return `'${fieldName}' must be a number`;
   }
-}
+};
+
+const validateCauses = (causes) => {
+  const errors = [];
+
+  if (!Array.isArray(causes)) {
+    errors.push(`'causes' must be an array`);
+  }
+
+  else {
+    if (causes.find((cause) => typeof cause.id !== 'number')) {
+      errors.push(`the id of each cause in 'causes' must be a number`);
+    }
+
+    if (causes.find((cause) => typeof cause.cause_name !== 'string')) {
+      errors.push(`the 'cause_name' of each cause in 'causes' must be a string`);
+    }
+  }
+
+  return errors.join('; ');
+};
+
+const validateCreator = (creator) => {
+  const errors = [];
+  if (!creator || validateNumber('creator.id')(creator.id)) {
+    errors.push(`creator id must be a number`);
+  }
+  
+  if (!creator || validateString('creator.username')(creator.username)) {
+    errors.push('creator username must be a string');
+  }
+
+  if (!creator || validateString('creator.email')(creator.email)) {
+    errors.push('creator email must be a string');
+  }
+
+  return errors.join('; ');
+};
 
 /**
  * Validates fields of the provided entity
@@ -31,7 +68,11 @@ const validate = (validators) => (entity) => {
       // do nothing
     }
     else {
-      const vFs = fs.map((v) => v(fieldName));
+      const vFs = fs.map((v) => {
+        return (v.name === 'validateCreator' || v.name === 'validateCauses')
+          ? v 
+          : v(fieldName);
+      });
       const errorMsgs = vFs.map((f) => f(entity[fieldName])).filter(Boolean);
       errors.push(...errorMsgs);
     }
@@ -47,7 +88,8 @@ const validateOrganizationPost = validate([
   ['email', [validateString]],
   ['org_address', [validateString]],
   ['org_desc', [validateRequired, validateString]],
-  ['creator', [validateRequired, validateNumber]]
+  ['causes', [validateCauses]],
+  ['creator', [validateRequired, validateCreator]]
 ]);
 
 const validateOrganizationPatch = (newFields) => {
@@ -56,7 +98,7 @@ const validateOrganizationPatch = (newFields) => {
   // check if any fields are provided
   const numFields = Object.values(newFields).filter(Boolean).length;
   if (numFields === 0) {
-    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'creator'`);
+    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', 'causes', or 'creator'`);
     return errors;
   }
 
@@ -68,7 +110,8 @@ const validateOrganizationPatch = (newFields) => {
     ['email', [validateString]],
     ['org_address', [validateString]],
     ['org_desc', [validateString]],
-    ['creator', [validateNumber]]
+    ['causes', [validateCauses]],
+    ['creator', [validateCreator]]
   ])(newFields));
 
   return errors;

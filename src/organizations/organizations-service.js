@@ -176,7 +176,7 @@ const OrganizationsService = {
       }
     }
 
-    // Combine all user fields into a single object
+    // Combine all user fields into a single creator object
     orgs.forEach((org) => {
       org.creator = {
         id: org.user_id,

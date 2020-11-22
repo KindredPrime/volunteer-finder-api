@@ -8,8 +8,10 @@ const {
   testValidationFields
 } = require('./fixtures');
 const { makeMaliciousOrg, makeFullOrganizationsArray } = require('./organizations-fixtures');
+const { makeMaliciousUser } = require('./users-fixtures');
+const { makeMaliciousCause } = require('./causes-fixtures');
 
-describe.skip('Organizations Endpoints', () => {
+describe('Organizations Endpoints', () => {
   let db;
   before('Connect to database', () => {
     db = knex({
@@ -20,7 +22,7 @@ describe.skip('Organizations Endpoints', () => {
     app.set('db', db);
   });
 
-  const truncateTables = 'TRUNCATE users, organizations RESTART IDENTITY CASCADE';
+  const truncateTables = 'TRUNCATE users, organizations, causes, org_causes RESTART IDENTITY CASCADE';
 
   before('Clear tables', () => db.raw(truncateTables));
 
@@ -67,7 +69,7 @@ describe.skip('Organizations Endpoints', () => {
           });
       });
 
-      it('Responds with 200 and all organizations, with their causes', () => {
+      it('Responds with 200 and all organizations, with their causes and creator', () => {
         return supertest(app)
           .get('/api/orgs')
           .expect(200, fullTestOrgs);
@@ -75,24 +77,35 @@ describe.skip('Organizations Endpoints', () => {
     });
 
     context('Given XSS attack content', () => {
-      const testUsers = makeUsersArray();
-      const { maliciousOrg, expectedOrg } = makeMaliciousOrg();
+      const { maliciousUser } = makeMaliciousUser();
+      const { maliciousCause } = makeMaliciousCause();
+      const { maliciousOrg, maliciousOrgCause, sanitizedFullOrg } = makeMaliciousOrg();
 
-      beforeEach('Insert users and malicious org', () => {
+      beforeEach('Insert malicious user, malicious cause, malicious org, and org_cause', () => {
         return db
-          .insert(testUsers)
+          .insert(maliciousUser)
           .into('users')
           .then(() => {
             return db
-              .insert(maliciousOrg)
-              .into('organizations');
+              .insert(maliciousCause)
+              .into('causes')
+              .then(() => {
+                return db
+                  .insert(maliciousOrg)
+                  .into('organizations')
+                  .then(() => {
+                    return db
+                      .insert(maliciousOrgCause)
+                      .into('org_causes');
+                  });
+              });
           });
       });
 
-      it('Responds with 200 and the organizations, without their XSS content', () => {
+      it('Responds with 200 and the full organizations, without their XSS content', () => {
         return supertest(app)
           .get('/api/orgs')
-          .expect(200, [expectedOrg]);
+          .expect(200, [sanitizedFullOrg]);
       });
     });
   });
@@ -110,117 +123,159 @@ describe.skip('Organizations Endpoints', () => {
     });
 
     context('Given the table has organizations', () => {
-      const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
+      const testUsers = makeUsersArray();
+      const testCauses = makeCausesArray();
+      const testOrgCauses = makeOrgCausesArray();
+      const fullTestOrgs = makeFullOrganizationsArray(
+        testOrgs, testCauses, testOrgCauses, testUsers
+      );
 
-      beforeEach('Populate users and organizations', () => {
+      beforeEach('Populate users, organizations, causes, and org_causes', () => {
         return db
           .insert(testUsers)
           .into('users')
           .then(() => {
             return db
               .insert(testOrgs)
-              .into('organizations');
+              .into('organizations')
+              .then(() => {
+                return db
+                  .insert(testCauses)
+                  .into('causes')
+                  .then(() => {
+                    return db
+                      .insert(testOrgCauses)
+                      .into('org_causes');
+                  });
+              });
           });
       });
 
-      it('Responds with 200 and the organization with the id', () => {
+      it('Responds with 200 and the organization id, including its causes and creator', () => {
         const id = 1;
         return supertest(app)
           .get(`/api/orgs/${id}`)
-          .expect(200, testOrgs[id - 1]);
+          .expect(200, fullTestOrgs[id - 1]);
       });
     });
 
     context('Given XSS attack content', () => {
-      const testUsers = makeUsersArray();
-      const { maliciousOrg, expectedOrg } = makeMaliciousOrg();
+      const { maliciousUser } = makeMaliciousUser();
+      const { maliciousCause } = makeMaliciousCause();
+      const { maliciousOrg, maliciousOrgCause, sanitizedFullOrg } = makeMaliciousOrg();
 
       beforeEach('Insert users and malicious org', () => {
         return db
-          .insert(testUsers)
+          .insert(maliciousUser)
           .into('users')
           .then(() => {
             return db
               .insert(maliciousOrg)
-              .into('organizations');
+              .into('organizations')
+              .then(() => {
+                return db
+                  .insert(maliciousCause)
+                  .into('causes')
+                  .then(() => {
+                    return db
+                      .insert(maliciousOrgCause)
+                      .into('org_causes');
+                  });
+              });
           });
       });
 
-      it('Responds with 200 and the organization with id, without its XSS attack content', () => {
-        const id = 1;
-        return supertest(app)
-          .get(`/api/orgs/${id}`)
-          .expect(200, expectedOrg);
-      });
+      it(
+        'Responds with 200 and the full organization with id, without its XSS attack content',
+        () => {
+          const id = 1;
+          return supertest(app)
+            .get(`/api/orgs/${id}`)
+            .expect(200, sanitizedFullOrg);
+        });
     });
   });
 
   describe('POST /api/orgs', () => {
     const testUsers = makeUsersArray();
+    const testCauses = makeCausesArray();
 
-    beforeEach('Populate users table', () => {
+    beforeEach('Populate users and causes', () => {
       return db
         .insert(testUsers)
-        .into('users');
-    });
-
-    it(`Responds with 201 and the created organization, and adds the organization to the database`, () => {
-      const newOrg = {
-        org_name: 'New Org',
-        website: 'https://www.new-org.com',
-        phone: '1-800-123-4567',
-        email: 'contact@new-org.com',
-        org_address: '1 New Street',
-        org_desc: 'A description for New Org',
-        creator: 1
-      };
-      return supertest(app)
-        .post('/api/orgs')
-        .send(newOrg)
-        .expect(201)
-        .expect((res) => {
-          const resOrg = res.body;
-          expect(resOrg).to.have.property('id');
-          expect(resOrg.org_name).to.eql(newOrg.org_name);
-          expect(resOrg.website).to.eql(newOrg.website);
-          expect(resOrg.phone).to.eql(newOrg.phone);
-          expect(resOrg.email).to.eql(newOrg.email);
-          expect(resOrg.org_address).to.eql(newOrg.org_address);
-          expect(resOrg.org_desc).to.eql(newOrg.org_desc);
-          expect(resOrg.creator).to.eql(newOrg.creator);
-          expect(res.headers.location).to.eql(`/api/orgs/${resOrg.id}`);
-        })
-        .then((postRes) => {
-          const { id } = postRes.body;
-          const expectedOrg = {
-            id,
-            ...newOrg
-          };
-
-          return supertest(app)
-            .get(postRes.headers.location)
-            .expect(200, expectedOrg);
+        .into('users')
+        .then(() => {
+          return db
+            .insert(testCauses)
+            .into('causes');
         });
     });
+
+    it(
+      `Responds with 201 and the created organization, adds the organization to the database`, 
+      () => {
+        const newOrg = {
+          org_name: 'New Org',
+          website: 'https://www.new-org.com',
+          phone: '1-800-123-4567',
+          email: 'contact@new-org.com',
+          org_address: '1 New Street',
+          org_desc: 'A description for New Org',
+          causes: [testCauses[0]],
+          creator: testUsers[0]
+        };
+
+        return supertest(app)
+          .post('/api/orgs')
+          .send(newOrg)
+          .expect(201)
+          .expect((res) => {
+            const resOrg = res.body;
+            expect(resOrg).to.have.property('id');
+            expect(resOrg.org_name).to.eql(newOrg.org_name);
+            expect(resOrg.website).to.eql(newOrg.website);
+            expect(resOrg.phone).to.eql(newOrg.phone);
+            expect(resOrg.email).to.eql(newOrg.email);
+            expect(resOrg.org_address).to.eql(newOrg.org_address);
+            expect(resOrg.org_desc).to.eql(newOrg.org_desc);
+            expect(resOrg.creator).to.eql(newOrg.creator.id);
+            expect(res.headers.location).to.eql(`/api/orgs/${resOrg.id}`);
+          })
+          .then((postRes) => {
+            const { id } = postRes.body;
+            const expectedOrg = {
+              id,
+              ...newOrg
+            };
+
+            return supertest(app)
+              .get(postRes.headers.location)
+              .expect(200, expectedOrg);
+          });
+      });
 
     /*
       Test Validation Errors
     */
-    const validationOrg = {
+    const validationFullOrg = {
       org_name: 'Org Name',
       website: 'https://www.website.com',
       phone: '111-111-1111',
       email: 'contact@website.com',
       org_address: '123 Org Street Org City, Org State',
       org_desc: 'Org description text',
-      creator: 1
+      causes: [testCauses[0]],
+      creator: testUsers[0]
     };
 
     const requiredFieldErrors = {
       org_name: [`'org_name' is missing from the request body`, `'org_name' must be a string`],
       org_desc: [`'org_desc' is missing from the request body`, `'org_desc' must be a string`],
-      creator: [`'creator' is missing from the request body`, `'creator' must be a number`]
+      creator: [
+        `'creator' is missing from the request body`,
+        `creator id must be a number; creator username must be a string; creator email must be a string`
+      ]
     };
     testValidationFields(
       app,
@@ -229,7 +284,7 @@ describe.skip('Organizations Endpoints', () => {
       'post',
       () => '/api/orgs',
       requiredFieldErrors,
-      validationOrg,
+      validationFullOrg,
       (org, fieldName) => {
         delete org[fieldName];
         return org;
@@ -243,7 +298,7 @@ describe.skip('Organizations Endpoints', () => {
       email: [`'email' must be a string`],
       org_address: [`'org_address' must be a string`],
       org_desc: [`'org_desc' must be a string`]
-    }
+    };
     testValidationFields(
       app,
       'POST',
@@ -251,44 +306,102 @@ describe.skip('Organizations Endpoints', () => {
       'post',
       () => '/api/orgs',
       stringFieldErrors,
-      validationOrg,
+      validationFullOrg,
       (org, fieldName) => {
         org[fieldName] = 6;
         return org;
       }
     );
 
-    const numberFieldErrors = {
-      creator: [`'creator' must be a number`]
+    const causesFieldErrors = {
+      causes: [
+        `'causes' must be an array`
+      ]
     };
     testValidationFields(
       app,
       'POST',
-      (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a number`,
+      () => `Responds with 400 and an error message when 'causes' isn't an array`,
       'post',
       () => '/api/orgs',
-      numberFieldErrors,
-      validationOrg,
-      (org, fieldName) => {
-        org[fieldName] = '6';
+      causesFieldErrors,
+      validationFullOrg,
+      (org) => {
+        org.causes = testCauses[0];
+
+        return org;
+      }
+    );
+
+    const causesElementErrors = {
+      causes: [
+        `the id of each cause in 'causes' must be a number`,
+        `the 'cause_name' of each cause in 'causes' must be a string`
+      ]
+    };
+    testValidationFields(
+      app,
+      'POST',
+      () => `Responds with 400 and an error message when elements of 'causes' are invalid`,
+      'post',
+      () => '/api/orgs',
+      causesElementErrors,
+      validationFullOrg,
+      (org) => {
+        org.causes = [
+          {
+            id: 'six',
+            cause_name: 6
+          }
+        ];
+
+        return org;
+      }
+    );
+
+    const creatorFieldErrors = {
+      creator: [
+        `creator id must be a number`,
+        'creator username must be a string',
+        'creator email must be a string'
+      ]
+    };
+    testValidationFields(
+      app,
+      'POST',
+      () => `Responds with 400 and an error message when 'creator' has invalid fields`,
+      'post',
+      () => '/api/orgs',
+      creatorFieldErrors,
+      validationFullOrg,
+      (org) => {
+        org.creator = {
+          id: 'six',
+          username: 6,
+          email: 6
+        };
+
         return org;
       }
     );
 
     context('Given XSS attack content', () => {
-      const { maliciousOrg, expectedOrg } = makeMaliciousOrg();
+      const { maliciousFullOrg, sanitizedOrg } = makeMaliciousOrg();
 
       it('Responds with 201 and the created organization, without its XSS content', () => {
         return supertest(app)
           .post('/api/orgs')
-          .send(maliciousOrg)
-          .expect(201, expectedOrg);
+          .send(maliciousFullOrg)
+          .expect(201, sanitizedOrg);
       });
     });
   });
 
   describe('PATCH /api/orgs/:id', () => {
     context('Given no organizations', () => {
+      const testUsers = makeUsersArray();
+      const testCauses = makeCausesArray();
+
       it('Responds with 404 and an error message', () => {
         const id = 1000;
         const newFields = {
@@ -298,7 +411,8 @@ describe.skip('Organizations Endpoints', () => {
           email: 'contact@updated-org.com',
           org_address: '1 Updated Street Updated City, Updated State',
           org_desc: 'A description that has been updated',
-          creator: 2
+          causes: [testCauses[0]],
+          creator: testUsers[1]
         };
 
         return supertest(app)
@@ -311,19 +425,34 @@ describe.skip('Organizations Endpoints', () => {
     context('Given the table has organizations', () => {
       const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
+      const testCauses = makeCausesArray();
+      const testOrgCauses = makeOrgCausesArray();
+      const fullTestOrgs = makeFullOrganizationsArray(
+        testOrgs, testCauses, testOrgCauses, testUsers
+      );
 
-      beforeEach('Populate users and organizations', () => {
+      beforeEach('Populate users, organizations, causes, and org_causes', () => {
         return db
           .insert(testUsers)
           .into('users')
           .then(() => {
             return db
               .insert(testOrgs)
-              .into('organizations');
+              .into('organizations')
+              .then(() => {
+                return db
+                  .insert(testCauses)
+                  .into('causes')
+                  .then(() => {
+                    return db
+                      .insert(testOrgCauses)
+                      .into('org_causes');
+                  });
+              });
           });
       });
 
-      it('Responds with 204 and updates the organization with the id', () => {
+      it('Responds with 204 and updates the organization with id', () => {
         const id = 1;
         const newFields = {
           org_name: 'Updated Name',
@@ -332,7 +461,8 @@ describe.skip('Organizations Endpoints', () => {
           email: 'contact@updated-org.com',
           org_address: '1 Updated Street Updated City, Updated State',
           org_desc: 'A description that has been updated',
-          creator: 2
+          causes: [testCauses[0]],
+          creator: testUsers[1]
         };
 
         return supertest(app)
@@ -355,21 +485,22 @@ describe.skip('Organizations Endpoints', () => {
           .patch(`/api/orgs/${id}`)
           .send({ irrelevant: 'foo' })
           .expect(400, { 
-            message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'creator'`
+            message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', 'causes', or 'creator'`
           });
       });
 
       /*
         Test Validation Errors
       */
-      const validationOrg = {
+      const validationFullOrg = {
         org_name: 'Org Name',
         website: 'https://www.website.com',
         phone: '111-111-1111',
         email: 'contact@website.com',
         org_address: '123 Org Street Org City, Org State',
         org_desc: 'Org description text',
-        creator: 1
+        causes: [testCauses[0]],
+        creator: testUsers[0]
       };
 
       const stringFieldErrors = {
@@ -379,34 +510,89 @@ describe.skip('Organizations Endpoints', () => {
         email: [`'email' must be a string`],
         org_address: [`'org_address' must be a string`],
         org_desc: [`'org_desc' must be a string`]
-      }
+      };
       testValidationFields(
         app,
-        'PATCH',
+        'POST',
         (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a string`,
-        'patch',
-        (id) => `/api/orgs/${id}`,
+        'post',
+        () => '/api/orgs',
         stringFieldErrors,
-        validationOrg,
+        validationFullOrg,
         (org, fieldName) => {
           org[fieldName] = 6;
           return org;
         }
       );
 
-      const numberFieldErrors = {
-        creator: [`'creator' must be a number`]
+      const causesFieldErrors = {
+        causes: [
+          `'causes' must be an array`
+        ]
       };
       testValidationFields(
         app,
-        'PATCH',
-        (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a number`,
-        'patch',
-        (id) => `/api/orgs/${id}`,
-        numberFieldErrors,
-        validationOrg,
-        (org, fieldName) => {
-          org[fieldName] = 'six';
+        'POST',
+        () => `Responds with 400 and an error message when 'causes' isn't an array`,
+        'post',
+        () => '/api/orgs',
+        causesFieldErrors,
+        validationFullOrg,
+        (org) => {
+          org.causes = testCauses[0];
+
+          return org;
+        }
+      );
+
+      const causesElementErrors = {
+        causes: [
+          `the id of each cause in 'causes' must be a number`,
+          `the 'cause_name' of each cause in 'causes' must be a string`
+        ]
+      };
+      testValidationFields(
+        app,
+        'POST',
+        () => `Responds with 400 and an error message when elements of 'causes' are invalid`,
+        'post',
+        () => '/api/orgs',
+        causesElementErrors,
+        validationFullOrg,
+        (org) => {
+          org.causes = [
+            {
+              id: 'six',
+              cause_name: 6
+            }
+          ];
+
+          return org;
+        }
+      );
+
+      const creatorFieldErrors = {
+        creator: [
+          `creator id must be a number`,
+          'creator username must be a string',
+          'creator email must be a string'
+        ]
+      };
+      testValidationFields(
+        app,
+        'POST',
+        () => `Responds with 400 and an error message when 'creator' has invalid fields`,
+        'post',
+        () => '/api/orgs',
+        creatorFieldErrors,
+        validationFullOrg,
+        (org) => {
+          org.creator = {
+            id: 'six',
+            username: 6,
+            email: 6
+          };
+
           return org;
         }
       );
@@ -426,6 +612,11 @@ describe.skip('Organizations Endpoints', () => {
     context('Given the table has organizations', () => {
       const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
+      const testCauses = makeCausesArray();
+      const testOrgCauses = makeOrgCausesArray();
+      const fullTestOrgs = makeFullOrganizationsArray(
+        testOrgs, testCauses, testOrgCauses, testUsers
+      );
 
       beforeEach('Populate users and organizations', () => {
         return db
@@ -434,12 +625,22 @@ describe.skip('Organizations Endpoints', () => {
           .then(() => {
             return db
               .insert(testOrgs)
-              .into('organizations');
+              .into('organizations')
+              .then(() => {
+                return db
+                  .insert(testCauses)
+                  .into('causes')
+                  .then(() => {
+                    return db
+                      .insert(testOrgCauses)
+                      .into('org_causes');
+                  });
+              });
           });
       });
 
       it(
-        `Responds with 204 and removes the organization with the id from the 'organizations' table`,
+        `Responds with 204, removes organization with id from 'organizations'`,
         () => {
           const id = 1;
           return supertest(app)
@@ -448,7 +649,7 @@ describe.skip('Organizations Endpoints', () => {
             .then(() => {
               return supertest(app)
                 .get(`/api/orgs`)
-                .expect(200, testOrgs.filter((org) => org.id !== id));
+                .expect(200, fullTestOrgs.filter((org) => org.id !== id));
             });
         });
     });
