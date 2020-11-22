@@ -2,7 +2,7 @@ const knex = require('knex');
 const UsersService = require('../src/users/users-service');
 const { makeUsersArray } = require('./users-fixtures');
 
-describe.only('UsersService', () => {
+describe('UsersService', () => {
   let db;
   before('Connect to the database', () => {
     db = knex({
