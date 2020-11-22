@@ -122,8 +122,27 @@ const validateUserPost = validate([
   ['email', [validateRequired, validateString]]
 ]);
 
+const validateUserPatch = (newFields) => {
+  const errors = [];
+
+  // check if any fields are provided
+  const numFields = Object.values(newFields).filter(Boolean).length;
+  if (numFields === 0) {
+    return [`Request body must include 'username' or 'email'`];
+  }
+
+  // call validate method
+  errors.push(...validate([
+    ['username', [validateString]],
+    ['email', [validateString]]
+  ])(newFields));
+
+  return errors;
+};
+
 module.exports = {
   validateOrganizationPost,
   validateOrganizationPatch,
-  validateUserPost
+  validateUserPost,
+  validateUserPatch
 };

@@ -2,7 +2,7 @@ const express = require('express');
 const xss = require('xss');
 const UsersService = require('./users-service');
 const logger = require('../logger');
-const { validateUserPost } = require('../util');
+const { validateUserPost, validateUserPatch } = require('../util');
 
 const usersRouter = express.Router();
 const bodyParser = express.json();
@@ -66,6 +66,27 @@ usersRouter
   })
   .get((req, res, next) => {
     return res.json(sanitizeUser(res.user));
+  })
+  .patch(bodyParser, (req, res, next) => {
+    const { id } = req.params;
+    const { username, email } = req.body;
+    const newFields = { username, email };
+
+    const errorMsgs = validateUserPatch(newFields);
+    if (errorMsgs.length > 0) {
+      const message = errorMsgs.join('; ');
+      logger.error(`${req.method}: ${message}`);
+      return res
+        .status(400)
+        .json({ message });
+    }
+
+    return UsersService.updateUser(req.app.get('db'), id, newFields)
+      .then(() => {
+        return res
+          .status(204)
+          .end();
+      });
   });
 
 module.exports = usersRouter;

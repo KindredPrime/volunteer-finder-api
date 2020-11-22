@@ -191,4 +191,86 @@ describe('Users Endpoints', () => {
       });
     });
   });
+
+  describe('PATCH /api/users/:id', () => {
+    context('Given no users', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        const newFields = {
+          email: 'updatedUser@gmail.com',
+          username: 'updatedUser'
+        };
+
+        return supertest(app)
+          .patch(`/api/users/${id}`)
+          .send(newFields)
+          .expect(404, { message: `User with id ${id} does not exist` });
+      });
+    });
+
+    context('Given the table has users', () => {
+      const testUsers = makeUsersArray();
+
+      beforeEach('Populate users', () => {
+        return db
+          .insert(testUsers)
+          .into('users');
+      });
+
+      it(`Responds with 204 and updates the user in 'users'`, () => {
+        const id = 1;
+        const newFields = {
+          email: 'updatedUser@gmail.com',
+          username: 'updatedUser'
+        };
+
+        return supertest(app)
+          .patch(`/api/users/${id}`)
+          .send(newFields)
+          .expect(204)
+          .then(() => {
+            return supertest(app)
+              .get(`/api/users/${id}`)
+              .expect(200, {
+                id,
+                ...newFields
+              });
+          });
+      });
+
+      it('Responds with 400 and an error message if no fields provided', () => {
+        const id = 1;
+        return supertest(app)
+          .patch(`/api/users/${id}`)
+          .send({ irrelevant: 'foo' })
+          .expect(400, { message: `Request body must include 'username' or 'email'` });
+      });
+
+      /*
+        Test Validation Errors
+      */
+      const validationUser = {
+        username: 'validationUser',
+        email: 'validationEmail@email.com'
+      };
+
+      const stringFieldErrors = {
+        username: [`'username' must be a string`],
+        email: [`'email' must be a string`],
+      };
+      testValidationFields(
+        app,
+        'PATCH',
+        (fieldName) => `Responds with 400 and an error message when ${fieldName} is not a string`,
+        'patch',
+        (id) => `/api/users/${id}`,
+        stringFieldErrors,
+        validationUser,
+        (user, fieldName) => {
+          user[fieldName] = 6;
+          return user;
+        }
+      );
+    });
+  });
 });
