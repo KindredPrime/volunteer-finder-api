@@ -1,15 +1,14 @@
 const app = require('../src/app');
 const knex = require('knex');
+const { testValidationFields } = require('./fixtures');
 const { 
-  makeUsersArray,
   makeOrganizationsArray,
-  makeCausesArray,
-  makeOrgCausesArray,
-  testValidationFields
-} = require('./fixtures');
-const { makeMaliciousOrg, makeFullOrganizationsArray } = require('./organizations-fixtures');
-const { makeMaliciousUser } = require('./users-fixtures');
-const { makeMaliciousCause } = require('./causes-fixtures');
+  makeMaliciousOrg,
+  makeFullOrganizationsArray
+} = require('./organizations-fixtures');
+const { makeUsersArray, makeMaliciousUser } = require('./users-fixtures');
+const { makeCausesArray, makeMaliciousCause } = require('./causes-fixtures');
+const { makeOrgCausesArray } = require('./org_causes-fixtures');
 
 describe('Organizations Endpoints', () => {
   let db;
