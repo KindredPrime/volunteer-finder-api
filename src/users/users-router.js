@@ -86,7 +86,18 @@ usersRouter
         return res
           .status(204)
           .end();
-      });
+      })
+      .catch(next);
+  })
+  .delete((req, res, next) => {
+    const { id } = req.params;
+    return UsersService.deleteUser(req.app.get('db'), id)
+      .then(() => {
+        return res
+          .status(204)
+          .end();
+      })
+      .catch(next);
   });
 
 module.exports = usersRouter;

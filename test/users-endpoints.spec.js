@@ -273,4 +273,37 @@ describe('Users Endpoints', () => {
       );
     });
   });
+
+  describe('DELETE /api/users/:id', () => {
+    context('Given no users', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        return supertest(app)
+          .delete(`/api/users/${id}`)
+          .expect(404, { message: `User with id ${id} does not exist` });
+      });
+    });
+
+    context('Given the table has users', () => {
+      const testUsers = makeUsersArray();
+
+      beforeEach('Populate users', () => {
+        return db
+          .insert(testUsers)
+          .into('users');
+      });
+
+      it(`Responds with 204 and deletes the user with id from 'users'`, () => {
+        const id = 1;
+        return supertest(app)
+          .delete(`/api/users/${id}`)
+          .expect(204)
+          .then(() => {
+            return supertest(app)
+              .get('/api/users')
+              .expect(200, testUsers.filter((user) => user.id !== id));
+          });
+      });
+    });
+  });
 });
