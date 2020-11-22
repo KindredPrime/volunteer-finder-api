@@ -20,14 +20,18 @@ const OrganizationsService = {
       )
       .from('organizations as o')
       .leftJoin('org_causes as oc', 'o.id', 'oc.org_id')
-      .join('causes as c', 'c.id', 'oc.cause_id')
+      .leftJoin('causes as c', 'c.id', 'oc.cause_id')
       .leftJoin('users as u', 'o.creator', 'u.id');
   },
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
   },
-  getAllFullOrganizations(db) {
+  getAllFullOrganizations(db, searchTerm='') {
     return this._joinTables(db)
+      .where('org_name', 'ilike', `%${searchTerm}%`)
+      .orWhere('org_address', 'ilike', `%${searchTerm}%`)
+      .orWhere('org_desc', 'ilike', `%${searchTerm}%`)
+      .orderBy('o.id')
       .then(this._convertToJavaScript);
   },
   getById(db, id) {
@@ -152,6 +156,7 @@ const OrganizationsService = {
     for(const row of rows) {
       const { id, cause_id, cause_name } = row;
   
+      // This is only run if there is more than one cause for the organization
       if (seen.has(id)) {
         const org = orgs.find((elem) => elem.id === id);
         org.causes.push({ 
@@ -164,12 +169,15 @@ const OrganizationsService = {
         delete org.cause_name;
         delete org.cause_id;
   
+        // If there are no causes, set 'causes' field to an empty array
         orgs.push({
           ...org,
-          causes: [{ 
-            id: cause_id,
-            cause_name
-          }]
+          causes: cause_id 
+            ? [{ 
+              id: cause_id,
+              cause_name
+            }]
+            : []
         });
   
         seen.add(id);
