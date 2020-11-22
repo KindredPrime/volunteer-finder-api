@@ -1,7 +1,7 @@
 const OrgCausesService = require('../org_causes/org_causes-service');
 
 const OrganizationsService = {
-  joinTables(db) {
+  _joinTables(db) {
     return db
       .select(
         'o.id as id',
@@ -27,15 +27,15 @@ const OrganizationsService = {
     return db.select('*').from('organizations');
   },
   getAllFullOrganizations(db) {
-    return this.joinTables(db)
-      .then(this.convertToJavaScript);
+    return this._joinTables(db)
+      .then(this._convertToJavaScript);
   },
   getById(db, id) {
     return this.getAllOrganizations(db).where({ id }).first();
   },
   getFullById(db, id) {
-    return this.joinTables(db).where('o.id', id)
-      .then(this.convertToJavaScript)
+    return this._joinTables(db).where('o.id', id)
+      .then(this._convertToJavaScript)
       .then((orgs) => orgs[0]);
   },
   insertOrganization(db, fullOrg) {
@@ -142,9 +142,9 @@ const OrganizationsService = {
     });
   },
   deleteOrganization(db, id) {
-    return this.joinTables(db).where({ id }).del();
+    return this._joinTables(db).where({ id }).del();
   },
-  convertToJavaScript(rows) {
+  _convertToJavaScript(rows) {
     const orgs = [];
 
     // Combine all rows for an org, each with a separate cause, into one org with several causes
