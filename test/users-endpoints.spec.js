@@ -1,5 +1,6 @@
 const knex = require('knex');
 const app = require('../src/app');
+const { testValidationFields } = require('./fixtures');
 const { makeUsersArray, makeMaliciousUser } = require('./users-fixtures');
 
 describe('Users Endpoints', () => {
@@ -63,7 +64,7 @@ describe('Users Endpoints', () => {
     });
   });
 
-  describe.only('GET /api/users/:id', () => {
+  describe('GET /api/users/:id', () => {
     context('Given no users', () => {
       it('Responds with 404 and an error message', () => {
         const id = 1000;
@@ -104,6 +105,89 @@ describe('Users Endpoints', () => {
         return supertest(app)
           .get(`/api/users/${id}`)
           .expect(200, sanitizedUser);
+      });
+    });
+  });
+
+  describe('POST /api/users', () => {
+    it('Responds with 201 and the created user, and adds it to database', () => {
+      const newUser = {
+        email: 'newUser@gmail.com',
+        username: 'newUser'
+      };
+
+      return supertest(app)
+        .post('/api/users')
+        .send(newUser)
+        .expect(201)
+        .expect((res) => {
+          const resUser = res.body;
+          expect(resUser).to.have.property('id');
+          expect(resUser.email).to.eql(newUser.email);
+          expect(resUser.username).to.eql(newUser.username);
+          expect(res.headers.location).to.eql(`/api/users/${resUser.id}`);
+        })
+        .then((postRes) => {
+          return supertest(app)
+            .get(postRes.headers.location)
+            .expect(200, {
+              id: postRes.body.id,
+              ...newUser
+            });
+        });
+    });
+
+    /*
+      Test Validation Errors
+    */
+    const validationUser = {
+      username: 'validationUser',
+      email: 'validationEmail@email.com'
+    };
+
+    const requiredFieldErrors = {
+      username: [`'username' is missing from the request body`, `'username' must be a string`],
+      email: [`'email' is missing from the request body`, `'email' must be a string`],
+    };
+    testValidationFields(
+      app,
+      'POST',
+      (fieldName) => `Responds with 400 and an error message when ${fieldName} is missing`,
+      'post',
+      () => '/api/users',
+      requiredFieldErrors,
+      validationUser,
+      (user, fieldName) => {
+        delete user[fieldName];
+        return user;
+      }
+    );
+
+    const stringFieldErrors = {
+      username: [`'username' must be a string`],
+      email: [`'email' must be a string`],
+    };
+    testValidationFields(
+      app,
+      'POST',
+      (fieldName) => `Responds with 400 and an error message when ${fieldName} is not a string`,
+      'post',
+      () => '/api/users',
+      stringFieldErrors,
+      validationUser,
+      (user, fieldName) => {
+        user[fieldName] = 6;
+        return user;
+      }
+    );
+
+    context('Given the new user has XSS attack content', () => {
+      it('Responds with 201 and the new user, without its XSS content', () => {
+        const { maliciousUser, sanitizedUser } = makeMaliciousUser();
+        return supertest(app)
+          .post('/api/users')
+          .send(maliciousUser)
+          .expect(201, sanitizedUser);
       });
     });
   });

@@ -1,6 +1,8 @@
 const express = require('express');
 const xss = require('xss');
 const UsersService = require('./users-service');
+const logger = require('../logger');
+const { validateUserPost } = require('../util');
 
 const usersRouter = express.Router();
 const bodyParser = express.json();
@@ -20,6 +22,27 @@ usersRouter
       .then((users) => {
         return res
           .json(users.map(sanitizeUser));
+      })
+      .catch(next);
+  })
+  .post(bodyParser, (req, res, next) => {
+    const newUser = req.body;
+
+    const errorMsgs = validateUserPost(newUser);
+    if (errorMsgs.length > 0) {
+      const message = errorMsgs.join('; ');
+      logger.error(`${req.method}: ${message}`);
+      return res
+        .status(400)
+        .json({ message });
+    }
+
+    return UsersService.insertUser(req.app.get('db'), newUser)
+      .then((user) => {
+        return res
+          .status(201)
+          .location(`/api/users/${user.id}`)
+          .json(sanitizeUser(user));
       })
       .catch(next);
   });

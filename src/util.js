@@ -117,7 +117,13 @@ const validateOrganizationPatch = (newFields) => {
   return errors;
 }
 
+const validateUserPost = validate([
+  ['username', [validateRequired, validateString]],
+  ['email', [validateRequired, validateString]]
+]);
+
 module.exports = {
   validateOrganizationPost,
-  validateOrganizationPatch
+  validateOrganizationPatch,
+  validateUserPost
 };
