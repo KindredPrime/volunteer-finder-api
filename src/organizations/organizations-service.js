@@ -26,11 +26,11 @@ const OrganizationsService = {
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
   },
-  getAllFullOrganizations(db, searchTerm='') {
+  getAllFullOrganizations(db, searchTerm) {
     return this._joinTables(db)
-      .where('org_name', 'ilike', `%${searchTerm}%`)
-      .orWhere('org_address', 'ilike', `%${searchTerm}%`)
-      .orWhere('org_desc', 'ilike', `%${searchTerm}%`)
+      .where('org_name', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
+      .orWhere('org_address', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
+      .orWhere('org_desc', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
       .orderBy('o.id')
       .then(this._convertToJavaScript);
   },
