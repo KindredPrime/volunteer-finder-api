@@ -1,6 +1,5 @@
 const knex = require('knex');
 const OrgCausesService = require('../src/org_causes/org_causes-service');
-const { makeUsersArray } = require('./users-fixtures');
 const { makeOrganizationsArray } = require('./organizations-fixtures');
 const { makeCausesArray } = require('./causes-fixtures');
 const { makeOrgCausesArray } = require('./org_causes-fixtures');
@@ -14,7 +13,7 @@ describe('OrgCausesService', () => {
     });
   });
 
-  const truncateTable = 'TRUNCATE org_causes, users, organizations, causes RESTART IDENTITY CASCADE';
+  const truncateTable = 'TRUNCATE org_causes, organizations, causes RESTART IDENTITY CASCADE';
 
   before('Clear tables', () => db.raw(truncateTable));
 
@@ -23,23 +22,17 @@ describe('OrgCausesService', () => {
   after('Disconnect from database', () => db.destroy());
 
   context('Given no org_causes', () => {
-    const testUsers = makeUsersArray();
     const testOrgs = makeOrganizationsArray();
     const testCauses = makeCausesArray();
 
-    beforeEach('Populate users, orgs, causes, and orgCauses', () => {
+    beforeEach('Populate orgs, causes, and orgCauses', () => {
       return db
-        .insert(testUsers)
-        .into('users')
+        .insert(testOrgs)
+        .into('organizations')
         .then(() => {
           return db
-            .insert(testOrgs)
-            .into('organizations')
-            .then(() => {
-              return db
-                .insert(testCauses)
-                .into('causes');
-            });
+            .insert(testCauses)
+            .into('causes');
         });
     });
 
@@ -63,28 +56,22 @@ describe('OrgCausesService', () => {
   });
 
   context('Given the table has org_causes', () => {
-    const testUsers = makeUsersArray();
     const testOrgs = makeOrganizationsArray();
     const testCauses = makeCausesArray();
     const testOrgCauses = makeOrgCausesArray();
 
-    beforeEach('Populate users, orgs, causes, and orgCauses', () => {
+    beforeEach('Populate orgs, causes, and orgCauses', () => {
       return db
-        .insert(testUsers)
-        .into('users')
+        .insert(testOrgs)
+        .into('organizations')
         .then(() => {
           return db
-            .insert(testOrgs)
-            .into('organizations')
+            .insert(testCauses)
+            .into('causes')
             .then(() => {
               return db
-                .insert(testCauses)
-                .into('causes')
-                .then(() => {
-                  return db
-                    .insert(testOrgCauses)
-                    .into('org_causes');
-                });
+                .insert(testOrgCauses)
+                .into('org_causes');
             });
         });
     });

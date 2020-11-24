@@ -11,17 +11,12 @@ const OrganizationsService = {
         'o.email',
         'org_address',
         'org_desc',
-        'creator',
         'c.id as cause_id',
-        'cause_name',
-        'u.id as user_id',
-        'username',
-        'u.email as user_email'
+        'cause_name'
       )
       .from('organizations as o')
       .leftJoin('org_causes as oc', 'o.id', 'oc.org_id')
-      .leftJoin('causes as c', 'c.id', 'oc.cause_id')
-      .leftJoin('users as u', 'o.creator', 'u.id');
+      .leftJoin('causes as c', 'c.id', 'oc.cause_id');
   },
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
@@ -67,8 +62,7 @@ const OrganizationsService = {
       email,
       org_address,
       org_desc,
-      causes,
-      creator
+      causes
     } = fullOrg;
 
     const org = {
@@ -77,8 +71,7 @@ const OrganizationsService = {
       phone,
       email,
       org_address,
-      org_desc,
-      creator: creator.id
+      org_desc
     };
 
     return db.transaction((trx) => {
@@ -116,8 +109,7 @@ const OrganizationsService = {
       email,
       org_address,
       org_desc,
-      causes,
-      creator
+      causes
     } = newFields;
 
     const orgNewFields = {
@@ -126,8 +118,7 @@ const OrganizationsService = {
       phone,
       email,
       org_address,
-      org_desc,
-      creator: creator && creator.id
+      org_desc
     };
 
     const newOrgCauses = causes.map((cause) => {
@@ -200,20 +191,6 @@ const OrganizationsService = {
         seen.add(id);
       }
     }
-
-    // Combine all user fields into a single creator object
-    orgs.forEach((org) => {
-      org.creator = {
-        id: org.user_id,
-        username: org.username,
-        email: org.user_email
-      };
-      delete org.user_id;
-      delete org.username;
-      delete org.user_email;
-
-      return org;
-    });
   
     return orgs;
   }

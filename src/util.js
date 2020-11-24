@@ -36,23 +36,6 @@ const validateCauses = (causes) => {
   return errors.join('; ');
 };
 
-const validateCreator = (creator) => {
-  const errors = [];
-  if (!creator || validateNumber('creator.id')(creator.id)) {
-    errors.push(`creator id must be a number`);
-  }
-  
-  if (!creator || validateString('creator.username')(creator.username)) {
-    errors.push('creator username must be a string');
-  }
-
-  if (!creator || validateString('creator.email')(creator.email)) {
-    errors.push('creator email must be a string');
-  }
-
-  return errors.join('; ');
-};
-
 /**
  * Validates fields of the provided entity
  * 
@@ -69,7 +52,7 @@ const validate = (validators) => (entity) => {
     }
     else {
       const vFs = fs.map((v) => {
-        return (v.name === 'validateCreator' || v.name === 'validateCauses')
+        return (v.name === 'validateCauses')
           ? v 
           : v(fieldName);
       });
@@ -88,8 +71,7 @@ const validateOrganizationPost = validate([
   ['email', [validateString]],
   ['org_address', [validateString]],
   ['org_desc', [validateRequired, validateString]],
-  ['causes', [validateCauses]],
-  ['creator', [validateRequired, validateCreator]]
+  ['causes', [validateCauses]]
 ]);
 
 const validateOrganizationPatch = (newFields) => {
@@ -98,7 +80,7 @@ const validateOrganizationPatch = (newFields) => {
   // check if any fields are provided
   const numFields = Object.values(newFields).filter(Boolean).length;
   if (numFields === 0) {
-    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', 'causes', or 'creator'`);
+    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'causes'`);
     return errors;
   }
 
@@ -110,39 +92,13 @@ const validateOrganizationPatch = (newFields) => {
     ['email', [validateString]],
     ['org_address', [validateString]],
     ['org_desc', [validateString]],
-    ['causes', [validateCauses]],
-    ['creator', [validateCreator]]
+    ['causes', [validateCauses]]
   ])(newFields));
 
   return errors;
 }
 
-const validateUserPost = validate([
-  ['username', [validateRequired, validateString]],
-  ['email', [validateRequired, validateString]]
-]);
-
-const validateUserPatch = (newFields) => {
-  const errors = [];
-
-  // check if any fields are provided
-  const numFields = Object.values(newFields).filter(Boolean).length;
-  if (numFields === 0) {
-    return [`Request body must include 'username' or 'email'`];
-  }
-
-  // call validate method
-  errors.push(...validate([
-    ['username', [validateString]],
-    ['email', [validateString]]
-  ])(newFields));
-
-  return errors;
-};
-
 module.exports = {
   validateOrganizationPost,
-  validateOrganizationPatch,
-  validateUserPost,
-  validateUserPatch
+  validateOrganizationPatch
 };

@@ -2,7 +2,6 @@ const knex = require('knex');
 const _ = require('lodash');
 const OrganizationsService = require('../src/organizations/organizations-service');
 const OrgCausesService = require('../src/org_causes/org_causes-service');
-const { makeUsersArray } = require('./users-fixtures');
 const { makeOrganizationsArray, makeFullOrganizationsArray } = require('./organizations-fixtures');
 const { makeOrgCausesArray } = require('./org_causes-fixtures');
 const { makeCausesArray } = require('./causes-fixtures');
@@ -15,7 +14,7 @@ describe('OrganizationsService', () => {
       connection: process.env.TEST_DATABASE_URL
     });
   });
-  const truncateTables = 'TRUNCATE users, organizations, causes, org_causes RESTART IDENTITY CASCADE';
+  const truncateTables = 'TRUNCATE organizations, causes, org_causes RESTART IDENTITY CASCADE';
 
   before('Clear tables', () => db.raw(truncateTables));
 
@@ -24,18 +23,12 @@ describe('OrganizationsService', () => {
   after('Disconnect from database', () => db.destroy());
 
   context('Given no organizations', () => {
-    const testUsers = makeUsersArray();
     const testCauses = makeCausesArray();
 
-    beforeEach('Populate users and causes', () => {
+    beforeEach('Populate causes', () => {
       return db
-        .insert(testUsers)
-        .into('users')
-        .then(() => {
-          return db
-            .insert(testCauses)
-            .into('causes');
-        });
+        .insert(testCauses)
+        .into('causes');
     });
 
     it('getAllOrganizations() returns an empty array', () => {
@@ -58,8 +51,7 @@ describe('OrganizationsService', () => {
           email: 'contact@org.com',
           org_address: '123 Fake Street',
           org_desc: 'A description for New Org',
-          causes: [testCauses[0], testCauses[1]],
-          creator: testUsers[0]
+          causes: [testCauses[0], testCauses[1]]
         };
         const expectedOrg = {
           id: 1,
@@ -68,8 +60,7 @@ describe('OrganizationsService', () => {
           phone: newOrg.phone,
           email: newOrg.email,
           org_address: newOrg.org_address,
-          org_desc: newOrg.org_desc,
-          creator: testUsers[0].id
+          org_desc: newOrg.org_desc
         };
         const expectedOrgCauses = [
           {
@@ -95,29 +86,23 @@ describe('OrganizationsService', () => {
   });
 
   context('Given table has organizations', () => {
-    const testUsers = makeUsersArray();
     const testOrgs = makeOrganizationsArray();
     const testCauses = makeCausesArray();
     const testOrgCauses = makeOrgCausesArray();
-    const testFullOrgs = makeFullOrganizationsArray(testOrgs, testCauses, testOrgCauses, testUsers);
+    const testFullOrgs = makeFullOrganizationsArray(testOrgs, testCauses, testOrgCauses);
 
-    beforeEach('Populate users, organizations, causes, and org_causes', () => {
+    beforeEach('Populate organizations, causes, and org_causes', () => {
       return db
-        .insert(testUsers)
-        .into('users')
+        .insert(testOrgs)
+        .into('organizations')
         .then(() => {
           return db
-            .insert(testOrgs)
-            .into('organizations')
+            .insert(testCauses)
+            .into('causes')
             .then(() => {
               return db
-                .insert(testCauses)
-                .into('causes')
-                .then(() => {
-                  return db
-                    .insert(testOrgCauses)
-                    .into('org_causes');
-                });
+                .insert(testOrgCauses)
+                .into('org_causes');
             });
         });
     });
@@ -128,7 +113,7 @@ describe('OrganizationsService', () => {
     });
 
     describe('getAllFullOrganizations()', () => {
-      it(`Returns all organizations from 'organizations', combined with their causes and creator`, 
+      it(`Returns all organizations from 'organizations', combined with their causes`, 
       () => {
         return OrganizationsService.getAllFullOrganizations(db)
           .then((results) => expect(results).to.eql(testFullOrgs));
@@ -183,8 +168,7 @@ describe('OrganizationsService', () => {
         email: 'contact@updated.com',
         org_address: '1 Updated Street',
         org_desc: 'The description has been updated.',
-        causes: [testCauses[2], testCauses[3]],
-        creator: testUsers[2]
+        causes: [testCauses[2], testCauses[3]]
       };
 
       const expectedOrg = {
@@ -194,8 +178,7 @@ describe('OrganizationsService', () => {
         phone: newFields.phone,
         email: newFields.email,
         org_address: newFields.org_address,
-        org_desc: newFields.org_desc,
-        creator: newFields.creator.id
+        org_desc: newFields.org_desc
       };
 
       const expectedOrgCauses = [

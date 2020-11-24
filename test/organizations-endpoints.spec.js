@@ -7,7 +7,6 @@ const {
   makeMaliciousOrg,
   makeFullOrganizationsArray
 } = require('./organizations-fixtures');
-const { makeUsersArray, makeMaliciousUser } = require('./users-fixtures');
 const { makeCausesArray, makeMaliciousCause } = require('./causes-fixtures');
 const { makeOrgCausesArray } = require('./org_causes-fixtures');
 
@@ -22,7 +21,7 @@ describe('Organizations Endpoints', () => {
     app.set('db', db);
   });
 
-  const truncateTables = 'TRUNCATE users, organizations, causes, org_causes RESTART IDENTITY CASCADE';
+  const truncateTables = 'TRUNCATE organizations, causes, org_causes RESTART IDENTITY CASCADE';
 
   before('Clear tables', () => db.raw(truncateTables));
 
@@ -40,36 +39,30 @@ describe('Organizations Endpoints', () => {
     });
 
     context('Given the table has organizations', () => {
-      const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
       const testFullOrgs = makeFullOrganizationsArray(
-        testOrgs, testCauses, testOrgCauses, testUsers
+        testOrgs, testCauses, testOrgCauses
       );
 
-      beforeEach('Populate users, orgs, causes, and org_causes', () => {
+      beforeEach('Populate orgs, causes, and org_causes', () => {
         return db
-          .insert(testUsers)
-          .into('users')
+          .insert(testOrgs)
+          .into('organizations')
           .then(() => {
             return db
-              .insert(testOrgs)
-              .into('organizations')
+              .insert(testCauses)
+              .into('causes')
               .then(() => {
                 return db
-                  .insert(testCauses)
-                  .into('causes')
-                  .then(() => {
-                    return db
-                      .insert(testOrgCauses)
-                      .into('org_causes');
-                  });
+                  .insert(testOrgCauses)
+                  .into('org_causes');
               });
           });
       });
 
-      it('Responds with 200 and all organizations, with their causes and creator', () => {
+      it('Responds with 200 and all organizations, with their causes', () => {
         return supertest(app)
           .get('/api/orgs')
           .expect(200, testFullOrgs);
@@ -105,27 +98,21 @@ describe('Organizations Endpoints', () => {
     });
 
     context('Given XSS attack content', () => {
-      const { maliciousUser } = makeMaliciousUser();
       const { maliciousCause } = makeMaliciousCause();
       const { maliciousOrg, maliciousOrgCause, sanitizedFullOrg } = makeMaliciousOrg();
 
-      beforeEach('Insert malicious user, malicious cause, malicious org, and org_cause', () => {
+      beforeEach('Insert malicious cause, malicious org, and org_cause', () => {
         return db
-          .insert(maliciousUser)
-          .into('users')
+          .insert(maliciousCause)
+          .into('causes')
           .then(() => {
             return db
-              .insert(maliciousCause)
-              .into('causes')
+              .insert(maliciousOrg)
+              .into('organizations')
               .then(() => {
                 return db
-                  .insert(maliciousOrg)
-                  .into('organizations')
-                  .then(() => {
-                    return db
-                      .insert(maliciousOrgCause)
-                      .into('org_causes');
-                  });
+                  .insert(maliciousOrgCause)
+                  .into('org_causes');
               });
           });
       });
@@ -152,35 +139,29 @@ describe('Organizations Endpoints', () => {
 
     context('Given the table has organizations', () => {
       const testOrgs = makeOrganizationsArray();
-      const testUsers = makeUsersArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
       const testFullOrgs = makeFullOrganizationsArray(
-        testOrgs, testCauses, testOrgCauses, testUsers
+        testOrgs, testCauses, testOrgCauses
       );
 
-      beforeEach('Populate users, organizations, causes, and org_causes', () => {
+      beforeEach('Populate organizations, causes, and org_causes', () => {
         return db
-          .insert(testUsers)
-          .into('users')
+          .insert(testOrgs)
+          .into('organizations')
           .then(() => {
             return db
-              .insert(testOrgs)
-              .into('organizations')
+              .insert(testCauses)
+              .into('causes')
               .then(() => {
                 return db
-                  .insert(testCauses)
-                  .into('causes')
-                  .then(() => {
-                    return db
-                      .insert(testOrgCauses)
-                      .into('org_causes');
-                  });
+                  .insert(testOrgCauses)
+                  .into('org_causes');
               });
           });
       });
 
-      it('Responds with 200 and the organization id, including its causes and creator', () => {
+      it('Responds with 200 and the organization id, including its causes', () => {
         const id = 1;
         return supertest(app)
           .get(`/api/orgs/${id}`)
@@ -189,27 +170,21 @@ describe('Organizations Endpoints', () => {
     });
 
     context('Given XSS attack content', () => {
-      const { maliciousUser } = makeMaliciousUser();
       const { maliciousCause } = makeMaliciousCause();
       const { maliciousOrg, maliciousOrgCause, sanitizedFullOrg } = makeMaliciousOrg();
 
-      beforeEach('Insert users and malicious org', () => {
+      beforeEach('Insert and malicious org', () => {
         return db
-          .insert(maliciousUser)
-          .into('users')
+          .insert(maliciousOrg)
+          .into('organizations')
           .then(() => {
             return db
-              .insert(maliciousOrg)
-              .into('organizations')
+              .insert(maliciousCause)
+              .into('causes')
               .then(() => {
                 return db
-                  .insert(maliciousCause)
-                  .into('causes')
-                  .then(() => {
-                    return db
-                      .insert(maliciousOrgCause)
-                      .into('org_causes');
-                  });
+                  .insert(maliciousOrgCause)
+                  .into('org_causes');
               });
           });
       });
@@ -226,18 +201,12 @@ describe('Organizations Endpoints', () => {
   });
 
   describe('POST /api/orgs', () => {
-    const testUsers = makeUsersArray();
     const testCauses = makeCausesArray();
 
-    beforeEach('Populate users and causes', () => {
+    beforeEach('Populate causes', () => {
       return db
-        .insert(testUsers)
-        .into('users')
-        .then(() => {
-          return db
-            .insert(testCauses)
-            .into('causes');
-        });
+        .insert(testCauses)
+        .into('causes');
     });
 
     it(
@@ -250,8 +219,7 @@ describe('Organizations Endpoints', () => {
           email: 'contact@new-org.com',
           org_address: '1 New Street',
           org_desc: 'A description for New Org',
-          causes: [testCauses[0]],
-          creator: testUsers[0]
+          causes: [testCauses[0]]
         };
 
         return supertest(app)
@@ -267,7 +235,6 @@ describe('Organizations Endpoints', () => {
             expect(resOrg.email).to.eql(newOrg.email);
             expect(resOrg.org_address).to.eql(newOrg.org_address);
             expect(resOrg.org_desc).to.eql(newOrg.org_desc);
-            expect(resOrg.creator).to.eql(newOrg.creator.id);
             expect(res.headers.location).to.eql(`/api/orgs/${resOrg.id}`);
           })
           .then((postRes) => {
@@ -293,17 +260,12 @@ describe('Organizations Endpoints', () => {
       email: 'contact@website.com',
       org_address: '123 Org Street Org City, Org State',
       org_desc: 'Org description text',
-      causes: [testCauses[0]],
-      creator: testUsers[0]
+      causes: [testCauses[0]]
     };
 
     const requiredFieldErrors = {
       org_name: [`'org_name' is missing from the request body`, `'org_name' must be a string`],
-      org_desc: [`'org_desc' is missing from the request body`, `'org_desc' must be a string`],
-      creator: [
-        `'creator' is missing from the request body`,
-        `creator id must be a number; creator username must be a string; creator email must be a string`
-      ]
+      org_desc: [`'org_desc' is missing from the request body`, `'org_desc' must be a string`]
     };
     testValidationFields(
       app,
@@ -387,32 +349,6 @@ describe('Organizations Endpoints', () => {
       }
     );
 
-    const creatorFieldErrors = {
-      creator: [
-        `creator id must be a number`,
-        'creator username must be a string',
-        'creator email must be a string'
-      ]
-    };
-    testValidationFields(
-      app,
-      'POST',
-      () => `Responds with 400 and an error message when 'creator' has invalid fields`,
-      'post',
-      () => '/api/orgs',
-      creatorFieldErrors,
-      validationFullOrg,
-      (org) => {
-        org.creator = {
-          id: 'six',
-          username: 6,
-          email: 6
-        };
-
-        return org;
-      }
-    );
-
     context('Given XSS attack content', () => {
       const { maliciousFullOrg, sanitizedOrg } = makeMaliciousOrg();
 
@@ -427,7 +363,6 @@ describe('Organizations Endpoints', () => {
 
   describe('PATCH /api/orgs/:id', () => {
     context('Given no organizations', () => {
-      const testUsers = makeUsersArray();
       const testCauses = makeCausesArray();
 
       it('Responds with 404 and an error message', () => {
@@ -439,8 +374,7 @@ describe('Organizations Endpoints', () => {
           email: 'contact@updated-org.com',
           org_address: '1 Updated Street Updated City, Updated State',
           org_desc: 'A description that has been updated',
-          causes: [testCauses[0]],
-          creator: testUsers[1]
+          causes: [testCauses[0]]
         };
 
         return supertest(app)
@@ -451,28 +385,22 @@ describe('Organizations Endpoints', () => {
     });
 
     context('Given the table has organizations', () => {
-      const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
 
-      beforeEach('Populate users, organizations, causes, and org_causes', () => {
+      beforeEach('Populate organizations, causes, and org_causes', () => {
         return db
-          .insert(testUsers)
-          .into('users')
+          .insert(testOrgs)
+          .into('organizations')
           .then(() => {
             return db
-              .insert(testOrgs)
-              .into('organizations')
+              .insert(testCauses)
+              .into('causes')
               .then(() => {
                 return db
-                  .insert(testCauses)
-                  .into('causes')
-                  .then(() => {
-                    return db
-                      .insert(testOrgCauses)
-                      .into('org_causes');
-                  });
+                  .insert(testOrgCauses)
+                  .into('org_causes');
               });
           });
       });
@@ -486,8 +414,7 @@ describe('Organizations Endpoints', () => {
           email: 'contact@updated-org.com',
           org_address: '1 Updated Street Updated City, Updated State',
           org_desc: 'A description that has been updated',
-          causes: [testCauses[0]],
-          creator: testUsers[1]
+          causes: [testCauses[0]]
         };
 
         return supertest(app)
@@ -510,7 +437,7 @@ describe('Organizations Endpoints', () => {
           .patch(`/api/orgs/${id}`)
           .send({ irrelevant: 'foo' })
           .expect(400, { 
-            message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', 'causes', or 'creator'`
+            message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'causes'`
           });
       });
 
@@ -524,8 +451,7 @@ describe('Organizations Endpoints', () => {
         email: 'contact@website.com',
         org_address: '123 Org Street Org City, Org State',
         org_desc: 'Org description text',
-        causes: [testCauses[0]],
-        creator: testUsers[0]
+        causes: [testCauses[0]]
       };
 
       const stringFieldErrors = {
@@ -595,32 +521,6 @@ describe('Organizations Endpoints', () => {
           return org;
         }
       );
-
-      const creatorFieldErrors = {
-        creator: [
-          `creator id must be a number`,
-          'creator username must be a string',
-          'creator email must be a string'
-        ]
-      };
-      testValidationFields(
-        app,
-        'PATCH',
-        () => `Responds with 400 and an error message when 'creator' has invalid fields`,
-        'patch',
-        (id) => `/api/orgs/${id}`,
-        creatorFieldErrors,
-        validationFullOrg,
-        (org) => {
-          org.creator = {
-            id: 'six',
-            username: 6,
-            email: 6
-          };
-
-          return org;
-        }
-      );
     });
   });
 
@@ -635,31 +535,25 @@ describe('Organizations Endpoints', () => {
     });
 
     context('Given the table has organizations', () => {
-      const testUsers = makeUsersArray();
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
       const testFullOrgs = makeFullOrganizationsArray(
-        testOrgs, testCauses, testOrgCauses, testUsers
+        testOrgs, testCauses, testOrgCauses
       );
 
-      beforeEach('Populate users and organizations', () => {
+      beforeEach('Populate organizations, causes, and org_causes', () => {
         return db
-          .insert(testUsers)
-          .into('users')
+          .insert(testOrgs)
+          .into('organizations')
           .then(() => {
             return db
-              .insert(testOrgs)
-              .into('organizations')
+              .insert(testCauses)
+              .into('causes')
               .then(() => {
                 return db
-                  .insert(testCauses)
-                  .into('causes')
-                  .then(() => {
-                    return db
-                      .insert(testOrgCauses)
-                      .into('org_causes');
-                  });
+                  .insert(testOrgCauses)
+                  .into('org_causes');
               });
           });
       });
