@@ -1,5 +1,6 @@
 const app = require('../src/app');
 const knex = require('knex');
+const _ = require('lodash');
 const { testValidationFields } = require('./fixtures');
 const { 
   makeOrganizationsArray,
@@ -88,6 +89,17 @@ describe('Organizations Endpoints', () => {
             return regEx.test(fullOrg.org_name)
               || regEx.test(fullOrg.org_address)
               || regEx.test(fullOrg.org_desc);
+          }));
+      });
+
+      it('Responds with 200 and all full organizations that have any of the provided causes', () => {
+        const causes = ['Youth', 'Animals'];
+        return supertest(app)
+          .get('/api/orgs')
+          .query({ causes })
+          .expect(200, testFullOrgs.filter((fullOrg) => {
+            const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
+            return _.intersection(fullOrgCauses, causes).length > 0;
           }));
       });
     });

@@ -47,8 +47,8 @@ organizationsRouter
   // Return all organizations, along with their causes and full creator entity,
   // optionally filtered by a search term and a list of causes
   .get((req, res, next) => {
-    const { term } = req.query;
-    return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term)
+    const { term, causes } = req.query;
+    return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term, causes)
       .then((orgs) => {
         return res.json(orgs.map(sanitizeFullOrganization));
       })
