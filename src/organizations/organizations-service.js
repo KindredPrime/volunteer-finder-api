@@ -26,13 +26,30 @@ const OrganizationsService = {
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
   },
-  getAllFullOrganizations(db, searchTerm) {
-    return this._joinTables(db)
-      .where('org_name', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
-      .orWhere('org_address', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
-      .orWhere('org_desc', 'ilike', `%${searchTerm ? searchTerm : ''}%`)
-      .orderBy('o.id')
-      .then(this._convertToJavaScript);
+  getAllFullOrganizations(db, searchTerm='', causes) {
+    let q = this._joinTables(db)
+      .where(function() {
+        return this.where('org_name', 'ilike', `%${searchTerm}%`)
+          .orWhere('org_address', 'ilike', `%${searchTerm}%`)
+          .orWhere('org_desc', 'ilike', `%${searchTerm}%`);
+      });
+      
+    if (causes) {
+      q = q.andWhere(function() {
+        this.whereExists(function() {
+          this.select('cause_name')
+            .from('causes as c2')
+            .join('org_causes as oc2', 'oc2.cause_id', 'c2.id')
+            .join('organizations as o2', function() {
+              this.on('o2.id', '=', 'o.id')
+              this.andOn('o2.id', '=', 'oc2.org_id')
+            })
+            .whereIn('c2.cause_name', causes);
+        });
+      });
+    }
+      
+    return q.orderBy('o.id').then(this._convertToJavaScript);
   },
   getById(db, id) {
     return this.getAllOrganizations(db).where({ id }).first();

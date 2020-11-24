@@ -44,7 +44,7 @@ function makeOrganizationsArray() {
       phone: '703-437-1794',
       email: 'FCPASully@fairfaxcounty.gov',
       org_address: '3650 Historic Sully Way Chantilly, VA',
-      org_desc: `Sully was completed in 1799 by Richard Bland Lee, Northern Virginia''s first Representative to Congress. It is on the National Register for Historic Places and is accredited by the American Alliance of Museums.`,
+      org_desc: `Sully was completed in 1799 by Richard Bland Lee, Northern Virginia's first Representative to Congress. It is on the National Register for Historic Places and is accredited by the American Alliance of Museums.`,
       creator: 1
     },
     {

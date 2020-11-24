@@ -1,4 +1,5 @@
 const knex = require('knex');
+const _ = require('lodash');
 const OrganizationsService = require('../src/organizations/organizations-service');
 const OrgCausesService = require('../src/org_causes/org_causes-service');
 const { makeUsersArray } = require('./users-fixtures');
@@ -141,11 +142,24 @@ describe('OrganizationsService', () => {
         const regEx = new RegExp(`.*${searchTerm}.*`, 'i');
         return OrganizationsService.getAllFullOrganizations(db, searchTerm)
           .then((results) => expect(results).to.eql(testFullOrgs.filter((fullOrg) => {
-            return regEx.test(fullOrg.org_name)
-              || regEx.test(fullOrg.org_address)
-              || regEx.test(fullOrg.org_desc)
-          })));
+              return regEx.test(fullOrg.org_name)
+                || regEx.test(fullOrg.org_address)
+                || regEx.test(fullOrg.org_desc)
+              })));
       });
+
+      it(
+        'Returns only the full organizations that have at least one of the provided causes',
+        () => {
+          const causes = ['Youth', 'Animals'];
+          return OrganizationsService.getAllFullOrganizations(db, '', causes)
+            .then((results) => {
+              return expect(results).to.eql(testFullOrgs.filter((fullOrg) => {
+                const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
+                return _.intersection(fullOrgCauses, causes).length > 0;
+              }));
+            });
+        });
     });
 
     it(`getById() returns the organization with the provided id`, () => {
