@@ -22,8 +22,7 @@ const sanitizeOrganization = (organization) => {
 
 const sanitizeFullOrganization = (organization) => {
   const {
-    causes,
-    creator
+    causes
   } = organization;
   
   return {
@@ -33,19 +32,14 @@ const sanitizeFullOrganization = (organization) => {
         ...cause,
         cause_name: xss(cause.cause_name)
       }
-    )),
-    creator: creator && {
-      ...creator,
-      email: xss(creator.email),
-      username: xss(creator.username)
-    }
+    ))
   };
 }
 
 organizationsRouter
   .route('/')
-  // Return all organizations, along with their causes and full creator entity,
-  // optionally filtered by a search term and a list of causes
+  // Return all organizations, along with their causes, optionally filtered by a search term and a
+  // list of causes
   .get((req, res, next) => {
     const { term, causes } = req.query;
     return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term, causes)
@@ -54,8 +48,7 @@ organizationsRouter
       })
       .catch(next);
   })
-  // Post a full organization, with its causes and full creator entity, to the database,
-  // updating all associated tables
+  // Post a full organization, with its causes, to the database and updates all associated tables
   .post(bodyParser, (req, res, next) => {
     const org = req.body;
     const errorMsgs = validateOrganizationPost(org);
@@ -96,11 +89,11 @@ organizationsRouter
       })
       .catch(next);
   })
-  // Return the organization with the provided id, along with its causes and full creator entity
+  // Return the organization with the provided id, along with its causes
   .get((req, res, next) => {
     return res.json(sanitizeFullOrganization(res.org));
   })
-  // Patch an existing organization, and its causes and creator, updating all associated tables.
+  // Patch an existing organization, and its causes, updating all associated tables.
   .patch(bodyParser, (req, res, next) => {
     const { id } = req.params;
     const {
@@ -110,10 +103,9 @@ organizationsRouter
       email,
       org_address,
       org_desc,
-      causes,
-      creator
+      causes
     } = req.body;
-    const newFields = { org_name, website, phone, email, org_address, org_desc, causes, creator };
+    const newFields = { org_name, website, phone, email, org_address, org_desc, causes };
 
     const errorMsgs = validateOrganizationPatch(newFields);
     if (errorMsgs.length > 0) {
