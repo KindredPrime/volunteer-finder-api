@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS org_tags;
+DROP TABLE IF EXISTS tags;
