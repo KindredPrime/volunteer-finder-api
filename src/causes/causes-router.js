@@ -23,4 +23,25 @@ causesRouter
       .catch(next);
   });
 
+causesRouter
+  .route('/:id')
+  .all((req, res, next) => {
+    const { id } = req.params;
+    return CausesService.getById(req.app.get('db'), id)
+      .then((cause) => {
+        if (!cause) {
+          return res
+            .status(404)
+            .json({ message: `Cause with id ${id} does not exist` });
+        }
+
+        req.cause = cause;
+        next();
+      })
+      .catch(next);
+  })
+  .get((req, res, next) => {
+    return res.json(sanitizeCause(req.cause));
+  });
+
 module.exports = causesRouter;

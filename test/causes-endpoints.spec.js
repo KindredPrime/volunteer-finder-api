@@ -21,7 +21,7 @@ describe('Causes Endpoints', () => {
 
   after('Disconnect from database', () => db.destroy());
 
-  describe.only('GET /api/causes', () => {
+  describe('GET /api/causes', () => {
     context('Given no causes', () => {
       it('Responds with 200 and an empty array', () => {
         return supertest(app)
@@ -59,6 +59,51 @@ describe('Causes Endpoints', () => {
         return supertest(app)
           .get('/api/causes')
           .expect(200, [sanitizedCause]);
+      });
+    });
+  });
+
+  describe('GET /api/causes/:id', () => {
+    context('Given no causes', () => {
+      it('Responds with 404 and an error message', () => {
+        const id = 1000;
+        return supertest(app)
+          .get(`/api/causes/${id}`)
+          .expect(404, { message: `Cause with id ${id} does not exist` });
+      });
+    });
+
+    context('Given the table has causes', () => {
+      const testCauses = makeCausesArray();
+
+      beforeEach('Populate causes', () => {
+        return db
+          .insert(testCauses)
+          .into('causes');
+      });
+
+      it(`Responds with 200 and the cause with id`, () => {
+        const id = 1;
+        return supertest(app)
+          .get(`/api/causes/${id}`)
+          .expect(200, testCauses[id - 1]);
+      });
+    });
+
+    context('Given the cause has XSS attack content', () => {
+      const { maliciousCause, sanitizedCause } = makeMaliciousCause();
+
+      beforeEach('Populate malicious cause', () => {
+        return db
+          .insert(maliciousCause)
+          .into('causes');
+      });
+
+      it(`Responds with 200 and the causes, without its XSS content`, () => {
+        const id = 1;
+        return supertest(app)
+          .get(`/api/causes/${id}`)
+          .expect(200, sanitizedCause);
       });
     });
   });
