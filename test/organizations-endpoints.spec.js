@@ -1,5 +1,6 @@
 const app = require('../src/app');
 const knex = require('knex');
+const _ = require('lodash');
 const { testValidationFields } = require('./fixtures');
 const { 
   makeOrganizationsArray,
@@ -43,7 +44,7 @@ describe('Organizations Endpoints', () => {
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
-      const fullTestOrgs = makeFullOrganizationsArray(
+      const testFullOrgs = makeFullOrganizationsArray(
         testOrgs, testCauses, testOrgCauses, testUsers
       );
 
@@ -71,7 +72,35 @@ describe('Organizations Endpoints', () => {
       it('Responds with 200 and all organizations, with their causes and creator', () => {
         return supertest(app)
           .get('/api/orgs')
-          .expect(200, fullTestOrgs);
+          .expect(200, testFullOrgs);
+      });
+
+      it(`Responds with 200 and all full organizations that match the search term`, () => {
+        // One org has this term only in its name,
+        // another only in its address,
+        // and a third only in its description.
+        const term = 'virginia';
+        const regEx = new RegExp(`.*${term}.*`, 'i');
+
+        return supertest(app)
+          .get('/api/orgs')
+          .query({ term })
+          .expect(200, testFullOrgs.filter((fullOrg) => {
+            return regEx.test(fullOrg.org_name)
+              || regEx.test(fullOrg.org_address)
+              || regEx.test(fullOrg.org_desc);
+          }));
+      });
+
+      it('Responds with 200 and all full organizations that have any of the provided causes', () => {
+        const causes = ['Youth', 'Animals'];
+        return supertest(app)
+          .get('/api/orgs')
+          .query({ causes })
+          .expect(200, testFullOrgs.filter((fullOrg) => {
+            const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
+            return _.intersection(fullOrgCauses, causes).length > 0;
+          }));
       });
     });
 
@@ -126,7 +155,7 @@ describe('Organizations Endpoints', () => {
       const testUsers = makeUsersArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
-      const fullTestOrgs = makeFullOrganizationsArray(
+      const testFullOrgs = makeFullOrganizationsArray(
         testOrgs, testCauses, testOrgCauses, testUsers
       );
 
@@ -155,7 +184,7 @@ describe('Organizations Endpoints', () => {
         const id = 1;
         return supertest(app)
           .get(`/api/orgs/${id}`)
-          .expect(200, fullTestOrgs[id - 1]);
+          .expect(200, testFullOrgs[id - 1]);
       });
     });
 
@@ -426,9 +455,6 @@ describe('Organizations Endpoints', () => {
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
-      const fullTestOrgs = makeFullOrganizationsArray(
-        testOrgs, testCauses, testOrgCauses, testUsers
-      );
 
       beforeEach('Populate users, organizations, causes, and org_causes', () => {
         return db
@@ -512,10 +538,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         (fieldName) => `Responds with 400 and an error message when ${fieldName} isn't a string`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         stringFieldErrors,
         validationFullOrg,
         (org, fieldName) => {
@@ -531,10 +557,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when 'causes' isn't an array`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         causesFieldErrors,
         validationFullOrg,
         (org) => {
@@ -552,10 +578,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when elements of 'causes' are invalid`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         causesElementErrors,
         validationFullOrg,
         (org) => {
@@ -579,10 +605,10 @@ describe('Organizations Endpoints', () => {
       };
       testValidationFields(
         app,
-        'POST',
+        'PATCH',
         () => `Responds with 400 and an error message when 'creator' has invalid fields`,
-        'post',
-        () => '/api/orgs',
+        'patch',
+        (id) => `/api/orgs/${id}`,
         creatorFieldErrors,
         validationFullOrg,
         (org) => {
@@ -613,7 +639,7 @@ describe('Organizations Endpoints', () => {
       const testOrgs = makeOrganizationsArray();
       const testCauses = makeCausesArray();
       const testOrgCauses = makeOrgCausesArray();
-      const fullTestOrgs = makeFullOrganizationsArray(
+      const testFullOrgs = makeFullOrganizationsArray(
         testOrgs, testCauses, testOrgCauses, testUsers
       );
 
@@ -648,7 +674,7 @@ describe('Organizations Endpoints', () => {
             .then(() => {
               return supertest(app)
                 .get(`/api/orgs`)
-                .expect(200, fullTestOrgs.filter((org) => org.id !== id));
+                .expect(200, testFullOrgs.filter((org) => org.id !== id));
             });
         });
     });

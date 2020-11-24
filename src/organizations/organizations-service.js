@@ -1,7 +1,7 @@
 const OrgCausesService = require('../org_causes/org_causes-service');
 
 const OrganizationsService = {
-  joinTables(db) {
+  _joinTables(db) {
     return db
       .select(
         'o.id as id',
@@ -20,22 +20,43 @@ const OrganizationsService = {
       )
       .from('organizations as o')
       .leftJoin('org_causes as oc', 'o.id', 'oc.org_id')
-      .join('causes as c', 'c.id', 'oc.cause_id')
+      .leftJoin('causes as c', 'c.id', 'oc.cause_id')
       .leftJoin('users as u', 'o.creator', 'u.id');
   },
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
   },
-  getAllFullOrganizations(db) {
-    return this.joinTables(db)
-      .then(this.convertToJavaScript);
+  getAllFullOrganizations(db, searchTerm='', causes) {
+    let q = this._joinTables(db)
+      .where(function() {
+        return this.where('org_name', 'ilike', `%${searchTerm}%`)
+          .orWhere('org_address', 'ilike', `%${searchTerm}%`)
+          .orWhere('org_desc', 'ilike', `%${searchTerm}%`);
+      });
+      
+    if (causes) {
+      q = q.andWhere(function() {
+        this.whereExists(function() {
+          this.select('cause_name')
+            .from('causes as c2')
+            .join('org_causes as oc2', 'oc2.cause_id', 'c2.id')
+            .join('organizations as o2', function() {
+              this.on('o2.id', '=', 'o.id')
+              this.andOn('o2.id', '=', 'oc2.org_id')
+            })
+            .whereIn('c2.cause_name', causes);
+        });
+      });
+    }
+      
+    return q.orderBy('o.id').then(this._convertToJavaScript);
   },
   getById(db, id) {
     return this.getAllOrganizations(db).where({ id }).first();
   },
   getFullById(db, id) {
-    return this.joinTables(db).where('o.id', id)
-      .then(this.convertToJavaScript)
+    return this._joinTables(db).where('o.id', id)
+      .then(this._convertToJavaScript)
       .then((orgs) => orgs[0]);
   },
   insertOrganization(db, fullOrg) {
@@ -142,9 +163,9 @@ const OrganizationsService = {
     });
   },
   deleteOrganization(db, id) {
-    return this.joinTables(db).where({ id }).del();
+    return this._joinTables(db).where({ id }).del();
   },
-  convertToJavaScript(rows) {
+  _convertToJavaScript(rows) {
     const orgs = [];
 
     // Combine all rows for an org, each with a separate cause, into one org with several causes
@@ -152,6 +173,7 @@ const OrganizationsService = {
     for(const row of rows) {
       const { id, cause_id, cause_name } = row;
   
+      // This is only run if there is more than one cause for the organization
       if (seen.has(id)) {
         const org = orgs.find((elem) => elem.id === id);
         org.causes.push({ 
@@ -164,12 +186,15 @@ const OrganizationsService = {
         delete org.cause_name;
         delete org.cause_id;
   
+        // If there are no causes, set 'causes' field to an empty array
         orgs.push({
           ...org,
-          causes: [{ 
-            id: cause_id,
-            cause_name
-          }]
+          causes: cause_id 
+            ? [{ 
+              id: cause_id,
+              cause_name
+            }]
+            : []
         });
   
         seen.add(id);

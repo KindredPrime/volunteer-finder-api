@@ -36,6 +36,36 @@ function makeOrganizationsArray() {
   
       Recognizing that all sectors of society must work together to foster more resilient, self-reliant communities nationwide, we facilitate partnerships with federal, state and local emergency management and other governmental agencies, as well as for-profit corporations, foundations, and educational and research institutions. National VOAD Members represent a powerful force of goodwill in America. They are the leaders who do the work to make our communities stronger and more resilient. In times of need they deliver hope for a more positive future.`,
       creator: 3
+    },
+    {
+      id: 4,
+      org_name: 'Sully Historic Site', 
+      website: 'https://www.fairfaxcounty.gov/parks/sully-historic-site/',
+      phone: '703-437-1794',
+      email: 'FCPASully@fairfaxcounty.gov',
+      org_address: '3650 Historic Sully Way Chantilly, VA',
+      org_desc: `Sully was completed in 1799 by Richard Bland Lee, Northern Virginia's first Representative to Congress. It is on the National Register for Historic Places and is accredited by the American Alliance of Museums.`,
+      creator: 1
+    },
+    {
+      id: 5,
+      org_name: 'Vecinos Unidos',
+      website: 'http://vecinosunidos.org/',
+      phone: '703-201-2809',
+      email: 'info@vecinosunidos.org',
+      org_address: '1086 Elden Street Herndon, Virginia 20170',
+      org_desc: `Vecinos Unidos makes a difference in the lives of students in grades 1-6 through homework assistance and summer enrichment programs—and has been doing so since 1997. With caring volunteers to guide them, students experience improved academic success and greater confidence in their ability to learn and achieve.`,
+      creator: 2
+    },
+    {
+      id: 6,
+      org_name: 'Girls on the Run of Northern Virginia',
+      website: 'https://gotrnova.org/',
+      phone: '703-273-3153',
+      email: 'info@gotrnova.org',
+      org_address: '10301 Democracy Lane, Suite 100 Fairfax',
+      org_desc: `At Girls on the Run of NOVA, we are creating a community of girls empowered to be their best, by teaching them the skills they need to be strong, confident, and healthy women. As a 501(c)(3) non-profit organization serving more than 70,000 girls since 2000, GOTR NOVA works to engage the entire community to positively impact the health and well being of the girls of Northern VA, their families and communities, and the volunteer coaches who serve them. GOTR NOVA is an Independent Council of Girls on the Run International, a network of more than 200 councils across 50 states and the District of Columbia. By connecting our councils’ deep local roots with our strong national unity, Girls on the Run has become a powerful movement that is making a difference in the holistic health of girls, families and communities across North America. Together, we are inspiring girls to know their limitless potential and boldly pursue their dreams.`,
+      creator: 3
     }
   ];
 }

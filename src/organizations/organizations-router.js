@@ -44,9 +44,11 @@ const sanitizeFullOrganization = (organization) => {
 
 organizationsRouter
   .route('/')
-  // Return all organizations, along with their causes and full creator entity
+  // Return all organizations, along with their causes and full creator entity,
+  // optionally filtered by a search term and a list of causes
   .get((req, res, next) => {
-    return OrganizationsService.getAllFullOrganizations(req.app.get('db'))
+    const { term, causes } = req.query;
+    return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term, causes)
       .then((orgs) => {
         return res.json(orgs.map(sanitizeFullOrganization));
       })
