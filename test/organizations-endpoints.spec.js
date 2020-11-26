@@ -86,13 +86,14 @@ describe('Organizations Endpoints', () => {
       });
 
       it('Responds with 200 and all full organizations that have any of the provided causes', () => {
-        const causes = ['Youth', 'Animals'];
+        const causes = 'Youth,Animals';
+        const causesArray = causes.split(',');
         return supertest(app)
           .get('/api/orgs')
           .query({ causes })
           .expect(200, testFullOrgs.filter((fullOrg) => {
             const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
-            return _.intersection(fullOrgCauses, causes).length > 0;
+            return _.intersection(fullOrgCauses, causesArray).length > 0;
           }));
       });
     });

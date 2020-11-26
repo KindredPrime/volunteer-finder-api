@@ -39,10 +39,11 @@ const sanitizeFullOrganization = (organization) => {
 organizationsRouter
   .route('/')
   // Return all organizations, along with their causes, optionally filtered by a search term and a
-  // list of causes
+  // comma-separated list of causes
   .get((req, res, next) => {
     const { term, causes } = req.query;
-    return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term, causes)
+    const causesArray = causes && causes.split(/,\s*/);
+    return OrganizationsService.getAllFullOrganizations(req.app.get('db'), term, causesArray)
       .then((orgs) => {
         return res.json(orgs.map(sanitizeFullOrganization));
       })
