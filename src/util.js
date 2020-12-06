@@ -37,9 +37,14 @@ const validateCauses = (causes) => {
 };
 
 /**
- * Validates fields of the provided entity
+ * Validates fields of the provided entity, and returns a list of error messages for any fields that
+ * fail.
  * 
  * @param {*} validators - a list of fields to be validated and the functions used to validate them
+ *   Format: [
+ *     [<first field name>, [<validate function>, <other validate function>]],
+ *     [<second field name>, [<validate function>, <other validate function>]]
+ *   ]
  */
 const validate = (validators) => (entity) => {
   const errors = [];
@@ -51,11 +56,15 @@ const validate = (validators) => (entity) => {
       // do nothing
     }
     else {
+      // Supply the field name to each validate function
       const vFs = fs.map((v) => {
         return (v.name === 'validateCauses')
           ? v 
           : v(fieldName);
       });
+
+      // Run the validate function with the field's value, and filter out any results that are 
+      // falsy.
       const errorMsgs = vFs.map((f) => f(entity[fieldName])).filter(Boolean);
       errors.push(...errorMsgs);
     }
@@ -64,6 +73,7 @@ const validate = (validators) => (entity) => {
   return errors;
 };
 
+// Validates the fields in a POST request for Organizations
 const validateOrganizationPost = validate([
   ['org_name', [validateRequired, validateString]],
   ['website', [validateString]],
@@ -74,6 +84,7 @@ const validateOrganizationPost = validate([
   ['causes', [validateCauses]]
 ]);
 
+// Validates the fields in a PATCH request for Organizations
 const validateOrganizationPatch = (newFields) => {
   const errors = [];
 

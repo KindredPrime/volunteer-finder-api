@@ -49,9 +49,9 @@ organizationsRouter
       })
       .catch(next);
   })
-  // Post a full organization, with its causes, to the database and updates all associated tables
   .post(bodyParser, (req, res, next) => {
     const org = req.body;
+
     const errorMsgs = validateOrganizationPost(org);
     if (errorMsgs.length > 0) {
       const message = errorMsgs.join('; ');

@@ -65,8 +65,8 @@ function makeOrganizationsArray() {
 
 /**
  * Return a malicious organization, the full version of the malicious organization with its
- * malicious causes, the org_cause connecting it to a malicious cause, the sanitized organization,
- * and the sanitized full organization with its causes
+ * malicious causes, the org_cause connecting the organization to a malicious cause, the sanitized 
+ * organization, and the sanitized full organization with its causes
  */
 function makeMaliciousOrg() {
   const { maliciousCause, sanitizedCause } = makeMaliciousCause();
@@ -116,7 +116,7 @@ function makeMaliciousOrg() {
 }
 
 /**
- * Returns a new array of organizations, with their causes added to them
+ * Combine the organizations with their causes
  * 
  * @param {*} orgs - A list of organizations
  * @param {*} causes - A list of causes
@@ -124,11 +124,14 @@ function makeMaliciousOrg() {
  */
 function makeFullOrganizationsArray(orgs, causes, orgCauses) {
   return orgs.map((org) => {
+    // Make a copy of org
     const newOrg = Object.fromEntries(Object.entries(org));
 
+    // Create a list of the cause ids tied to the organization
     newOrg.causes = orgCauses
-      .filter((orgCause) => orgCause.org_id === org.id)
+      .filter((orgCause) => orgCause.org_id === newOrg.id)
       .map(({ __, cause_id }) => cause_id);
+    // Convert the list of cause ids to a list of cause objects
     newOrg.causes = newOrg.causes.map((causeId) => (
       causes.find((cause) => cause.id === causeId)
     ));

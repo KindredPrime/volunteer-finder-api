@@ -211,7 +211,7 @@ describe('Organizations Endpoints', () => {
     });
 
     it(
-      `Responds with 201 and the created organization, adds the organization to the database`, 
+      `Responds with 201 and the created organization, and adds the organization to the database`, 
       () => {
         const newOrg = {
           org_name: 'New Org',
@@ -252,8 +252,11 @@ describe('Organizations Endpoints', () => {
       });
 
     /*
+    -------------------------------
       Test Validation Errors
+    -------------------------------
     */
+    // Organization template to use for validation tests
     const validationFullOrg = {
       org_name: 'Org Name',
       website: 'https://www.website.com',
@@ -264,6 +267,7 @@ describe('Organizations Endpoints', () => {
       causes: [testCauses[0]]
     };
 
+    // Expected validation errors for required fields
     const requiredFieldErrors = {
       org_name: [`'org_name' is missing from the request body`, `'org_name' must be a string`],
       org_desc: [`'org_desc' is missing from the request body`, `'org_desc' must be a string`]
@@ -282,6 +286,7 @@ describe('Organizations Endpoints', () => {
       }
     );
 
+    // Expected validation errors for string fields
     const stringFieldErrors = {
       org_name: [`'org_name' must be a string`],
       website: [`'website' must be a string`],
@@ -304,6 +309,7 @@ describe('Organizations Endpoints', () => {
       }
     );
 
+    // Expected validation errors for the causes field array
     const causesFieldErrors = {
       causes: [
         `'causes' must be an array`
@@ -324,6 +330,7 @@ describe('Organizations Endpoints', () => {
       }
     );
 
+    // Expected validation errors for fields within each cause of the causes field
     const causesElementErrors = {
       causes: [
         `the id of each cause in 'causes' must be a number`,
@@ -445,6 +452,7 @@ describe('Organizations Endpoints', () => {
       /*
         Test Validation Errors
       */
+      // Organization template to use for validation tests
       const validationFullOrg = {
         org_name: 'Org Name',
         website: 'https://www.website.com',
@@ -455,6 +463,7 @@ describe('Organizations Endpoints', () => {
         causes: [testCauses[0]]
       };
 
+      // Expected validation errors for string fields
       const stringFieldErrors = {
         org_name: [`'org_name' must be a string`],
         website: [`'website' must be a string`],
@@ -477,6 +486,7 @@ describe('Organizations Endpoints', () => {
         }
       );
 
+      // Expected validation errors for causes field array
       const causesFieldErrors = {
         causes: [
           `'causes' must be an array`
@@ -497,6 +507,7 @@ describe('Organizations Endpoints', () => {
         }
       );
 
+      // Expected validation errors for elements within each cause of the causes field
       const causesElementErrors = {
         causes: [
           `the id of each cause in 'causes' must be a number`,

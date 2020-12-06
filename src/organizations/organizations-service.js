@@ -1,6 +1,7 @@
 const OrgCausesService = require('../org_causes/org_causes-service');
 
 const OrganizationsService = {
+  // Joins organizations with their causes
   _joinTables(db) {
     return db
       .select(
@@ -21,6 +22,8 @@ const OrganizationsService = {
   getAllOrganizations(db) {
     return db.select('*').from('organizations');
   },
+  // Returns organizations with their causes, optionally filtered by a search term and a list of 
+  // acceptable causes.  If acceptable causes aren't provided, then all causes are acceptable.
   getAllFullOrganizations(db, searchTerm='', causes) {
     let q = this._joinTables(db)
       .where(function() {
@@ -28,19 +31,31 @@ const OrganizationsService = {
           .orWhere('org_address', 'ilike', `%${searchTerm}%`)
           .orWhere('org_desc', 'ilike', `%${searchTerm}%`);
       });
-      
+    
+    // Only include rows from the joinTables table that have an organization that has an acceptable 
+    // cause
     if (causes) {
+      // For each row of the joinTables table...
       q = q.andWhere(function() {
+        // Only include the row if the following query returns results
         this.whereExists(function() {
           this.select('cause_name')
             .from('causes as c2')
+            // Restrict the results to cause names used by ANY organizations
             .join('org_causes as oc2', 'oc2.cause_id', 'c2.id')
             .join('organizations as o2', function() {
+              // Restrict the results to only the organization of the current row of the joinTables 
+              // table
               this.on('o2.id', '=', 'o.id')
-              this.andOn('o2.id', '=', 'oc2.org_id')
+              // Restrict the results to only cause names used by the organization of the current 
+              // row of the joinTables table
+              this.andOn('o2.id', '=', 'oc2.org_id') 
             })
-            .whereIn('c2.cause_name', causes);
-        });
+            // Only include rows that have an acceptable cause name
+            .whereIn('c2.cause_name', causes); 
+        }); 
+        // If the organization of the row of the joinTables table doesn't have any of the 
+        // acceptable cause names, exclude all rows with that organization from the results
       });
     }
       
@@ -49,11 +64,19 @@ const OrganizationsService = {
   getById(db, id) {
     return this.getAllOrganizations(db).where({ id }).first();
   },
+  // Returns an organization with its causes
   getFullById(db, id) {
     return this._joinTables(db).where('o.id', id)
       .then(this._convertToJavaScript)
       .then((orgs) => orgs[0]);
   },
+  /**
+   * Adds an organization and its causes to the database, updating the organizations and  
+   * org_causes tables.
+   * 
+   * @param {*} db - the database instance to connect to
+   * @param {*} fullOrg - the organization, with its causes, to add to the database
+   */
   insertOrganization(db, fullOrg) {
     const {
       org_name,
@@ -94,8 +117,8 @@ const OrganizationsService = {
     });
   },
   /**
-   * Update the fields of the organization with any provided organization fields,
-   * and update the org_causes table if any new causes are provided.
+   * Updates the fields of the organization with any provided organization fields,
+   * and updates the org_causes table if any new causes are provided.
    * 
    * @param {*} db - The knex instance
    * @param {*} id - The id of the organization to update
@@ -144,7 +167,7 @@ const OrganizationsService = {
                 }));
               })
               .then(() => {
-                // Add the new org_causes for the org
+                // Add the new org_causes
                 return Promise.all(newOrgCauses.map((orgCause) => {
                   return OrgCausesService.insertOrgCause(db, orgCause);
                 }));
@@ -156,6 +179,12 @@ const OrganizationsService = {
   deleteOrganization(db, id) {
     return this._joinTables(db).where({ id }).del();
   },
+  /**
+   * Converts query results into an array of organization JavaScript objects, with a 'causes' field 
+   * that is an array of the organizations causes as JavaScript objects.
+   * 
+   * @param {*} rows - the query results to be converted
+   */
   _convertToJavaScript(rows) {
     const orgs = [];
 

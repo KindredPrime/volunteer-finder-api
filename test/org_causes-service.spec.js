@@ -25,7 +25,7 @@ describe('OrgCausesService', () => {
     const testOrgs = makeOrganizationsArray();
     const testCauses = makeCausesArray();
 
-    beforeEach('Populate orgs, causes, and orgCauses', () => {
+    beforeEach('Populate organizations and causes', () => {
       return db
         .insert(testOrgs)
         .into('organizations')
