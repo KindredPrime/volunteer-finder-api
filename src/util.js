@@ -10,12 +10,6 @@ const validateString = (fieldName) => (fieldValue) => {
   }
 };
 
-const validateNumber = (fieldName) => (fieldValue) => {
-  if (typeof fieldValue !== 'number') {
-    return `'${fieldName}' must be a number`;
-  }
-};
-
 const validateCauses = (causes) => {
   const errors = [];
 
