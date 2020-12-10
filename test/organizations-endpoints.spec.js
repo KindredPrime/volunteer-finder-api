@@ -2,7 +2,7 @@ const app = require('../src/app');
 const knex = require('knex');
 const _ = require('lodash');
 const { testValidationFields } = require('./fixtures');
-const { 
+const {
   makeOrganizationsArray,
   makeMaliciousOrg,
   makeFullOrganizationsArray
@@ -69,9 +69,11 @@ describe('Organizations Endpoints', () => {
       });
 
       it(`Responds with 200 and all full organizations that match the search term`, () => {
-        // One org has this term only in its name,
-        // another only in its address,
-        // and a third only in its description.
+
+        /*
+          One org has this term only in its name, another only in its address, and a third only in
+          its description.
+        */
         const term = 'virginia';
         const regEx = new RegExp(`.*${term}.*`, 'i');
 
@@ -85,17 +87,19 @@ describe('Organizations Endpoints', () => {
           }));
       });
 
-      it('Responds with 200 and all full organizations that have any of the provided causes', () => {
-        const causes = 'Youth,Animals';
-        const causesArray = causes.split(',');
-        return supertest(app)
-          .get('/api/orgs')
-          .query({ causes })
-          .expect(200, testFullOrgs.filter((fullOrg) => {
-            const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
-            return _.intersection(fullOrgCauses, causesArray).length > 0;
-          }));
-      });
+      it(
+        'Responds with 200 and all full organizations that have any of the provided causes',
+        () => {
+          const causes = 'Youth,Animals';
+          const causesArray = causes.split(',');
+          return supertest(app)
+            .get('/api/orgs')
+            .query({ causes })
+            .expect(200, testFullOrgs.filter((fullOrg) => {
+              const fullOrgCauses = fullOrg.causes.map((cause) => cause.cause_name);
+              return _.intersection(fullOrgCauses, causesArray).length > 0;
+            }));
+        });
     });
 
     context('Given XSS attack content', () => {
@@ -211,7 +215,7 @@ describe('Organizations Endpoints', () => {
     });
 
     it(
-      `Responds with 201 and the created organization, and adds the organization to the database`, 
+      `Responds with 201 and the created organization, and adds the organization to the database`,
       () => {
         const newOrg = {
           org_name: 'New Org',
@@ -256,6 +260,7 @@ describe('Organizations Endpoints', () => {
       Test Validation Errors
     -------------------------------
     */
+
     // Organization template to use for validation tests
     const validationFullOrg = {
       org_name: 'Org Name',
@@ -444,14 +449,17 @@ describe('Organizations Endpoints', () => {
         return supertest(app)
           .patch(`/api/orgs/${id}`)
           .send({ irrelevant: 'foo' })
-          .expect(400, { 
+          .expect(400, {
             message: `Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'causes'`
           });
       });
 
       /*
-        Test Validation Errors
+      -------------------------------
+      Test Validation Errors
+      -------------------------------
       */
+
       // Organization template to use for validation tests
       const validationFullOrg = {
         org_name: 'Org Name',

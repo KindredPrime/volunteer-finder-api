@@ -15,9 +15,7 @@ const validateCauses = (causes) => {
 
   if (!Array.isArray(causes)) {
     errors.push(`'causes' must be an array`);
-  }
-
-  else {
+  } else {
     if (causes.find((cause) => typeof cause.id !== 'number')) {
       errors.push(`the id of each cause in 'causes' must be a number`);
     }
@@ -31,14 +29,15 @@ const validateCauses = (causes) => {
 };
 
 /**
- * Validates fields of the provided entity, and returns a list of error messages for any fields that
- * fail.
- * 
- * @param {*} validators - a list of fields to be validated and the functions used to validate them
- *   Format: [
- *     [<first field name>, [<validate function>, <other validate function>]],
- *     [<second field name>, [<validate function>, <other validate function>]]
- *   ]
+ * Validates fields of the provided entity, and returns a list of error messages for any fields
+ * that fail.
+ *
+ * @param {Array} validators - A list of fields to be validated and the functions used to validate
+ *  them. Format: [
+ *    [<first field name>, [<validate function>, <other validate function>]],
+ *    [<second field name>, [<validate function>, <other validate function>]]
+ *  ]
+ * @return {Array} errors
  */
 const validate = (validators) => (entity) => {
   const errors = [];
@@ -47,18 +46,21 @@ const validate = (validators) => (entity) => {
 
     // skip testing if the field is missing and it isn't required
     if (!fieldRequired && !entity[fieldName]) {
+
       // do nothing
-    }
-    else {
+    } else {
+
       // Supply the field name to each validate function
       const vFs = fs.map((v) => {
         return (v.name === 'validateCauses')
-          ? v 
+          ? v
           : v(fieldName);
       });
 
-      // Run the validate function with the field's value, and filter out any results that are 
-      // falsy.
+      /*
+        Run the validate function with the field's value, and filter out any results that are
+        falsy.
+      */
       const errorMsgs = vFs.map((f) => f(entity[fieldName])).filter(Boolean);
       errors.push(...errorMsgs);
     }
@@ -85,7 +87,8 @@ const validateOrganizationPatch = (newFields) => {
   // check if any fields are provided
   const numFields = Object.values(newFields).filter(Boolean).length;
   if (numFields === 0) {
-    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', 'org_address', 'org_desc', or 'causes'`);
+    errors.push(`Request body must include 'org_name', 'website', 'phone', 'email', ` +
+    `'org_address', 'org_desc', or 'causes'`);
     return errors;
   }
 

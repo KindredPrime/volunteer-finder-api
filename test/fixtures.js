@@ -1,16 +1,16 @@
 /**
  * Generate field validation test cases
- * 
- * @param {*} app - The app to run the test against
- * @param {*} testTitle - The title of the test case (e.g. POST or PATCH)
- * @param {*} testDescriptionWriter - A function that uses the field name to generate a description 
- *  for a test case
- * @param {*} method - The HTTP method to use
- * @param {*} pathCreator - A function that uses the entity's id to create an endpoint path
- * @param {*} validationFieldErrors - An object containing the fields to be tested, with their 
+ *
+ * @param {Object} app - The app to run the test against
+ * @param {string} testTitle - The title of the test case (e.g. POST or PATCH)
+ * @param {Function} testDescriptionWriter - A function that uses the field name to generate a
+ *  description for a test case
+ * @param {string} method - The HTTP method to use
+ * @param {Function} pathCreator - A function that uses the entity's id to create an endpoint path
+ * @param {Object} validationFieldErrors - An object containing the fields to be tested, with their
  *  expected validation errors
- * @param {*} entity - The data entity to invalidate for each test case
- * @param {*} invalidator - A function that invalidates the entity to test validation errors
+ * @param {Object} entity - The data entity to invalidate for each test case
+ * @param {Function} invalidator - A function that invalidates the entity to test validation errors
  */
 function testValidationFields(
   app,

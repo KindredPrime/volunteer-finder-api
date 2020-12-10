@@ -24,7 +24,7 @@ const sanitizeFullOrganization = (organization) => {
   const {
     causes
   } = organization;
-  
+
   return {
     ...sanitizeOrganization(organization),
     causes: causes.map((cause) => (
@@ -38,8 +38,11 @@ const sanitizeFullOrganization = (organization) => {
 
 organizationsRouter
   .route('/')
-  // Return all organizations, along with their causes, optionally filtered by a search term and a
-  // comma-separated list of causes
+
+  /*
+    Return all organizations, along with their causes, optionally filtered by a search term and a
+    comma-separated list of causes
+  */
   .get((req, res, next) => {
     const { term, causes } = req.query;
     const causesArray = causes && causes.split(/,\s*/);
@@ -90,10 +93,12 @@ organizationsRouter
       })
       .catch(next);
   })
+
   // Return the organization with the provided id, along with its causes
   .get((req, res, next) => {
     return res.json(sanitizeFullOrganization(res.org));
   })
+
   // Patch an existing organization, and its causes, updating all associated tables.
   .patch(bodyParser, (req, res, next) => {
     const { id } = req.params;
@@ -125,6 +130,7 @@ organizationsRouter
       })
       .catch(next);
   })
+
   // Delete an organization from the database, cascading through all associated data
   .delete((req, res, next) => {
     const { id } = req.params;

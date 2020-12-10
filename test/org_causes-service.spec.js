@@ -93,7 +93,9 @@ describe('OrgCausesService', () => {
       const causeId = 1;
       return OrgCausesService.getByCauseId(db, causeId)
         .then((results) => {
-          expect(results).to.eql(testOrgCauses.filter((orgCause) => orgCause.cause_id === causeId));
+          expect(results).to.eql(testOrgCauses.filter((orgCause) => (
+            orgCause.cause_id === causeId
+          )));
         });
     });
 

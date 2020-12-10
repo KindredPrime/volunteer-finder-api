@@ -42,7 +42,7 @@ describe('OrganizationsService', () => {
     });
 
     it(
-      `insertOrganization() inserts the organization and causes and returns the new organization`, 
+      `insertOrganization() inserts the organization and causes and returns the new organization`,
       () => {
         const newOrg = {
           org_name: 'New Org',
@@ -106,23 +106,25 @@ describe('OrganizationsService', () => {
             });
         });
     });
-    
+
     it(`getAllOrganizations() returns all organizations from 'organizations'`, () => {
       return OrganizationsService.getAllOrganizations(db)
         .then((result) => expect(result).to.eql(testOrgs));
     });
 
     describe('getAllFullOrganizations()', () => {
-      it(`Returns all organizations from 'organizations', combined with their causes`, 
+      it(`Returns all organizations from 'organizations', combined with their causes`,
       () => {
         return OrganizationsService.getAllFullOrganizations(db)
           .then((results) => expect(results).to.eql(testFullOrgs));
       });
 
       it('Returns only the full organizations that match the search term', () => {
-        // One org has this term only in its name,
-        // another only in its address,
-        // and a third only in its description.
+
+        /*
+          One org has this term only in its name, another only in its address, and a third only in
+          its description.
+        */
         const searchTerm = 'virginia';
         const regEx = new RegExp(`.*${searchTerm}.*`, 'i');
         return OrganizationsService.getAllFullOrganizations(db, searchTerm)
@@ -203,7 +205,8 @@ describe('OrganizationsService', () => {
     });
 
     it(
-      `deleteOrganization() deletes the organization with id, and removes its causes from 'org_causes'`, 
+      `deleteOrganization() deletes the organization with id, and removes its causes from ` +
+      `'org_causes'`,
       () => {
         const id = 1;
 
